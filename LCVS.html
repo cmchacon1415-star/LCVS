@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionario de Liquidación Concursal</title>
+    
+    <!-- 1. Tailwind CSS para el diseño "lindo" -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Librería de Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 3. Librería jsPDF para generar el PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Fuente Inter para un look profesional -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        .btn-option.selected { border-color: #2563EB; background-color: #EFF6FF; color: #1D4ED8; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8 text-slate-800">
+
+    <div class="max-w-3xl mx-auto">
+        
+        <!-- Header -->
+        <div id="main-header" class="text-center mb-10">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
+                Cuestionario de Liquidación Concursal
+            </h1>
+            <p class="mt-4 text-lg text-slate-600">
+                Procedimiento Simplificado de Persona Deudora (Ley N° 20.720)
+            </p>
+        </div>
+
+        <!-- Stepper (Indicador de Pasos) -->
+        <div id="stepper-container" class="mb-8 overflow-hidden">
+            <div class="flex justify-between items-center relative">
+                <div class="absolute left-0 top-1/2 w-full h-0.5 bg-slate-200 -z-10"></div>
+                
+                <!-- Paso 1 -->
+                <div class="step-indicator flex flex-col items-center gap-2 text-blue-600" data-step="1">
+                    <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center border-2 border-blue-600 bg-white shadow-md scale-110 transition-all duration-300">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-xs font-semibold uppercase tracking-wider hidden sm:block">Identificación</span>
+                </div>
+
+                <!-- Paso 2 -->
+                <div class="step-indicator flex flex-col items-center gap-2 text-slate-400" data-step="2">
+                    <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-200 bg-white transition-all duration-300">
+                        <i data-lucide="briefcase" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-xs font-semibold uppercase tracking-wider hidden sm:block">Laboral</span>
+                </div>
+
+                <!-- Paso 3 -->
+                <div class="step-indicator flex flex-col items-center gap-2 text-slate-400" data-step="3">
+                    <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-200 bg-white transition-all duration-300">
+                        <i data-lucide="map-pin" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-xs font-semibold uppercase tracking-wider hidden sm:block">Contacto</span>
+                </div>
+
+                <!-- Paso 4 -->
+                <div class="step-indicator flex flex-col items-center gap-2 text-slate-400" data-step="4">
+                    <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-200 bg-white transition-all duration-300">
+                        <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                    </div>
+                    <span class="text-xs font-semibold uppercase tracking-wider hidden sm:block">Económico</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario Principal -->
+        <form id="main-form" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+            <div class="p-8">
+
+                <!-- STEP 1: Identificación -->
+                <div id="step-1" class="step-content active space-y-6">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div class="col-span-full">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre completo *</label>
+                            <input type="text" name="nombre" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Juan Pérez">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">RUT *</label>
+                            <input type="text" name="rut" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="12.345.678-9">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nacionalidad *</label>
+                            <input type="text" name="nacionalidad" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Estado Civil</label>
+                            <select name="estadoCivil" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">Seleccione...</option>
+                                <option value="soltero">Soltero(a)</option>
+                                <option value="casado">Casado(a)</option>
+                                <option value="divorciado">Divorciado(a)</option>
+                                <option value="viudo">Viudo(a)</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Profesión u oficio *</label>
+                            <input type="text" name="profesion" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Laboral -->
+                <div id="step-2" class="step-content space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-3">Situación laboral actual *</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <button type="button" class="btn-option p-4 rounded-xl border-2 border-slate-100 hover:border-slate-300 text-left transition-all" onclick="selectLaboral('Trabajador(a) dependiente', this)">
+                                <span class="block text-sm font-bold">Trabajador(a) dependiente</span>
+                            </button>
+                            <button type="button" class="btn-option p-4 rounded-xl border-2 border-slate-100 hover:border-slate-300 text-left transition-all" onclick="selectLaboral('Trabajador(a) independiente', this)">
+                                <span class="block text-sm font-bold">Trabajador(a) independiente</span>
+                            </button>
+                            <button type="button" class="btn-option p-4 rounded-xl border-2 border-slate-100 hover:border-slate-300 text-left transition-all" onclick="selectLaboral('Cesante', this)">
+                                <span class="block text-sm font-bold">Cesante</span>
+                            </button>
+                        </div>
+                        <input type="hidden" name="situacionLaboral" id="input-situacionLaboral">
+                    </div>
+
+                    <!-- Lógica Condicional: Solo visible si es dependiente -->
+                    <div id="dependiente-details" class="hidden p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                        <h4 class="font-semibold text-slate-800 border-b pb-2 mb-4">Detalles del Empleo</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">¿Contrato vigente?</label>
+                                <select name="contratoVigente" class="w-full px-3 py-2 rounded border border-slate-300">
+                                    <option value="">Seleccione...</option>
+                                    <option value="si">Sí</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Empleador</label>
+                                <input type="text" name="empleador" class="w-full px-3 py-2 rounded border border-slate-300">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Contacto -->
+                <div id="step-3" class="step-content space-y-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Domicilio completo (Calle, N°, Comuna, Región) *</label>
+                            <textarea name="domicilio" required rows="2" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Av. Providencia 123, Depto 401, Providencia, RM"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Correo electrónico *</label>
+                                <input type="email" name="email" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono de contacto *</label>
+                                <input type="tel" name="telefono" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+56 9 ...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Económico -->
+                <div id="step-4" class="step-content space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Ingreso mensual aprox.</label>
+                            <input type="text" name="ingreso" class="w-full px-4 py-2 rounded-lg border border-slate-300" placeholder="$">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Monto total de deuda aprox.</label>
+                            <input type="text" name="pasivo" class="w-full px-4 py-2 rounded-lg border border-slate-300" placeholder="$">
+                        </div>
+                        <div class="col-span-full">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Describa su situación de insolvencia *</label>
+                            <textarea name="situacionInsolvencia" required rows="3" class="w-full px-4 py-2 rounded-lg border border-slate-300" placeholder="¿Por qué no puede cumplir con sus pagos?"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-xs text-slate-500 italic">
+                        Nota: Los datos solicitados son de carácter básico y preliminar. El documento PDF generado sirve como comprobante de los datos ingresados.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Navigation -->
+            <div class="bg-slate-50 px-8 py-4 border-t border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+                <button type="button" id="prevBtn" onclick="changeStep(-1)" class="hidden flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                </button>
+
+                <div class="flex gap-3 ml-auto">
+                    <!-- Botón Generar PDF (Solo en paso 4) -->
+                    <button type="button" id="pdfBtn" onclick="generatePDF()" class="hidden flex items-center gap-2 px-6 py-2 border-2 border-slate-800 text-slate-800 rounded-full text-sm font-bold hover:bg-slate-800 hover:text-white transition-all">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Generar PDF
+                    </button>
+
+                    <!-- Botón Siguiente -->
+                    <button type="button" id="nextBtn" onclick="changeStep(1)" class="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95">
+                        Continuar <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                    
+                    <!-- Botón Enviar (Oculto inicialmente) -->
+                    <button type="submit" id="submitBtn" class="hidden flex items-center gap-2 px-8 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold hover:bg-emerald-700 transition-all shadow-md active:scale-95">
+                        Enviar Solicitud <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Pantalla de Éxito (Oculta por defecto) -->
+        <div id="success-screen" class="hidden min-h-[50vh] flex items-center justify-center">
+            <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-emerald-100">
+                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-4">¡Información Recibida!</h2>
+                <p class="text-slate-600 mb-6 leading-relaxed">
+                    Hemos recibido sus antecedentes preliminares. Nuestro equipo revisará su caso y lo contactará a la brevedad.
+                </p>
+                <button onclick="generatePDF()" class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all mb-4">
+                    <i data-lucide="file-text" class="w-5 h-5"></i> Descargar Copia en PDF
+                </button>
+                <div class="p-4 bg-slate-50 rounded-lg text-sm text-slate-500 text-left italic border-l-4 border-slate-300">
+                    Nota: La información definitiva y la documentación de respaldo serán solicitadas en una etapa posterior.
+                </div>
+                <button onclick="location.reload()" class="mt-4 text-sm text-blue-600 hover:underline">Volver al inicio</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script de Lógica -->
+    <script>
+        // Inicializar Iconos
+        lucide.createIcons();
+
+        let currentStep = 1;
+        const totalSteps = 4;
+        const form = document.getElementById('main-form');
+
+        // Función para cambiar pasos
+        function changeStep(n) {
+            // Validación simple al avanzar
+            if (n === 1 && !validateStep(currentStep)) return;
+
+            // Ocultar paso actual
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            
+            currentStep += n;
+            
+            // Mostrar nuevo paso
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            
+            updateUI();
+            window.scrollTo(0, 0);
+        }
+
+        function updateUI() {
+            // Actualizar botones inferiores
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const pdfBtn = document.getElementById('pdfBtn');
+
+            prevBtn.classList.toggle('hidden', currentStep === 1);
+            
+            if (currentStep === totalSteps) {
+                nextBtn.classList.add('hidden');
+                submitBtn.classList.remove('hidden');
+                pdfBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+                pdfBtn.classList.add('hidden');
+            }
+
+            // Actualizar Stepper Visual
+            document.querySelectorAll('.step-indicator').forEach(el => {
+                const stepNum = parseInt(el.dataset.step);
+                const circle = el.querySelector('.step-circle');
+                const icon = circle.querySelector('i'); // Puede ser null si ya se reemplazó por SVG
+                
+                if (stepNum < currentStep) {
+                    // Paso completado
+                    el.classList.remove('text-slate-400');
+                    el.classList.add('text-blue-600');
+                    circle.classList.remove('border-slate-200');
+                    circle.classList.add('border-blue-600');
+                    // Cambiar icono a check
+                    circle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check w-5 h-5"><polyline points="20 6 9 17 4 12"/></svg>';
+                } else if (stepNum === currentStep) {
+                    // Paso actual
+                    el.classList.remove('text-slate-400');
+                    el.classList.add('text-blue-600');
+                    circle.classList.remove('border-slate-200');
+                    circle.classList.add('border-blue-600', 'shadow-md', 'scale-110');
+                    // Resetear icono original según paso
+                    resetIcon(circle, stepNum);
+                } else {
+                    // Paso futuro
+                    el.classList.remove('text-blue-600');
+                    el.classList.add('text-slate-400');
+                    circle.classList.remove('border-blue-600', 'shadow-md', 'scale-110');
+                    circle.classList.add('border-slate-200');
+                    resetIcon(circle, stepNum);
+                }
+            });
+        }
+
+        function resetIcon(container, step) {
+            const icons = ['user', 'briefcase', 'map-pin', 'dollar-sign'];
+            const iconName = icons[step - 1];
+            // Re-renderizamos el icono usando Lucide
+            container.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+            lucide.createIcons({ root: container });
+        }
+
+        function validateStep(step) {
+            const container = document.getElementById(`step-${step}`);
+            const inputs = container.querySelectorAll('input[required], select[required], textarea[required]');
+            let valid = true;
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    valid = false;
+                    input.classList.add('border-red-500');
+                    // Remover clase de error al escribir
+                    input.addEventListener('input', () => input.classList.remove('border-red-500'), { once: true });
+                }
+            });
+            
+            // Validación específica paso 2 (Botones)
+            if (step === 2) {
+                const laboral = document.getElementById('input-situacionLaboral').value;
+                if (!laboral) {
+                    alert("Por favor seleccione una situación laboral.");
+                    return false;
+                }
+            }
+
+            return valid;
+        }
+
+        // Selección de Botones Laborales
+        function selectLaboral(value, btn) {
+            document.getElementById('input-situacionLaboral').value = value;
+            
+            // Estilos visuales
+            document.querySelectorAll('.btn-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            // Mostrar/Ocultar detalles
+            const details = document.getElementById('dependiente-details');
+            if (value === 'Trabajador(a) dependiente') {
+                details.classList.remove('hidden');
+            } else {
+                details.classList.add('hidden');
+            }
+        }
+
+        // Manejo del Envío
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Ocultar formulario y header
+            form.style.display = 'none';
+            document.getElementById('stepper-container').style.display = 'none';
+            document.getElementById('main-header').style.display = 'none';
+            
+            // Mostrar éxito
+            document.getElementById('success-screen').classList.remove('hidden');
+        });
+
+        // GENERACIÓN DE PDF
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Recolectar datos
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Estilos básicos
+            const margin = 20;
+            let y = 20;
+
+            // Título
+            doc.setFontSize(16);
+            doc.text("Resumen de Antecedentes: Liquidación Concursal", margin, y);
+            y += 10;
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generado el: ${new Date().toLocaleDateString()}`, margin, y);
+            y += 15;
+
+            const addSection = (title, content) => {
+                doc.setFontSize(12);
+                doc.setTextColor(0);
+                doc.setFont(undefined, 'bold');
+                doc.text(title, margin, y);
+                y += 7;
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(10);
+                
+                Object.entries(content).forEach(([key, value]) => {
+                    if (y > 270) { doc.addPage(); y = 20; }
+                    const text = `${key}: ${value || 'No informado'}`;
+                    const splitText = doc.splitTextToSize(text, 170);
+                    doc.text(splitText, margin + 5, y);
+                    y += (5 * splitText.length) + 2;
+                });
+                y += 5;
+            };
+
+            addSection("1. Identificación", {
+                "Nombre": data.nombre,
+                "RUT": data.rut,
+                "Nacionalidad": data.nacionalidad,
+                "Estado Civil": data.estadoCivil,
+                "Profesión": data.profesion
+            });
+
+            addSection("2. Situación Laboral", {
+                "Estado": data.situacionLaboral,
+                "Contrato Vigente": data.contratoVigente,
+                "Empleador": data.empleador
+            });
+
+            addSection("3. Contacto", {
+                "Domicilio": data.domicilio,
+                "Email": data.email,
+                "Teléfono": data.telefono
+            });
+
+            addSection("4. Antecedentes Económicos", {
+                "Ingresos": data.ingreso,
+                "Pasivos": data.pasivo,
+                "Situación de Insolvencia": data.situacionInsolvencia
+            });
+
+            // Pie de página legal
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            const footerText = "Nota: Este documento contiene información preliminar para fines de evaluación legal inicial conforme a la Ley N° 20.720.";
+            doc.text(doc.splitTextToSize(footerText, 170), margin, 285);
+
+            doc.save(`Antecedentes_Liquidacion_${data.rut || 'Pendiente'}.pdf`);
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes } from 'react-router-dom';
 import { PoderesStoreProvider } from './store/PoderesStoreContext';
 import { ToastProvider } from './components/ToastContext';
 import Layout from './components/Layout';
@@ -11,7 +11,7 @@ import GenerarPoderWizard from './pages/wizard/GenerarPoderWizard';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ToastProvider>
         <PoderesStoreProvider>
           <Routes>
@@ -29,6 +29,6 @@ export default function App() {
           </Routes>
         </PoderesStoreProvider>
       </ToastProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

@@ -8,82 +8,151 @@ function pdfCtx() {
 }
 function textWidth(text, size, bold) {
   const ctx = pdfCtx();
-  ctx.font = `${bold ? 'bold ' : ''}${size}px Helvetica, Arial, sans-serif`;
+  ctx.font = `${bold ? 'bold ' : ''}${size}px "Times New Roman", Times, serif`;
   return ctx.measureText(text).width;
-}
-function wrapText(text, maxWidth, size, bold) {
-  const words = text.split(' ');
-  const lines = [];
-  let cur = '';
-  words.forEach((w) => {
-    const test = cur ? cur + ' ' + w : w;
-    if (cur && textWidth(test, size, bold) > maxWidth) {
-      lines.push(cur);
-      cur = w;
-    } else {
-      cur = test;
-    }
-  });
-  if (cur) lines.push(cur);
-  return lines;
 }
 function pdfEscape(s) {
   return s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
-function buildPdfBinaryString(docModel) {
-  const PAGE_W = 595.28, PAGE_H = 841.89;
-  const MARGIN_X = 64, MARGIN_TOP = 76, MARGIN_BOTTOM = 70;
-  const MAX_W = PAGE_W - MARGIN_X * 2;
+// cm -> pt (1 cm = 28.3464567 pt)
+const CM = 28.3464567;
+const PAGE_W = 595.28, PAGE_H = 841.89; // A4
+const MARGIN_TOP = 2.5 * CM;
+const MARGIN_BOTTOM = 2.5 * CM;
+const MARGIN_LEFT = 3 * CM;
+const MARGIN_RIGHT = 2.5 * CM;
+const MAX_W = PAGE_W - MARGIN_LEFT - MARGIN_RIGHT;
+const BODY_SIZE = 12;
+const TITLE_SIZE = 14;
+const LINE_HEIGHT_FACTOR = 1.15;
+const PARAGRAPH_GAP = 10;
 
-  const blocks = [
-    { text: docModel.titulo, size: 15, bold: true, align: 'center', spaceAfter: 22 },
-    { text: docModel.encabezado, size: 11, bold: false, align: 'left', spaceAfter: 18 },
-    ...[docModel.parrafo1, docModel.parrafo2, docModel.parrafo3, docModel.cierre].map((p) => ({
-      text: p, size: 11, bold: false, align: 'left', spaceAfter: 16,
-    })),
-  ];
-
-  const lines = [];
-  blocks.forEach((b) => {
-    const wrapped = wrapText(b.text, MAX_W, b.size, b.bold);
-    wrapped.forEach((w, i) => {
-      lines.push({ text: w, size: b.size, bold: b.bold, align: b.align, spaceAfter: i === wrapped.length - 1 ? b.spaceAfter : 4 });
-    });
+// Convierte los "runs" ({ text, bold }) de un párrafo en palabras separadas
+// por espacio, donde cada palabra es a su vez una lista de fragmentos
+// ({ text, bold }) por si el límite de un run cae en medio de una palabra
+// (p. ej. un nombre en negrita seguido de una coma sin espacio: "SpA,").
+// Los fragmentos de una misma palabra se dibujan pegados, sin espacio entre
+// ellos; el espaciado (normal o justificado) solo se aplica entre palabras.
+function runsToWordUnits(runs) {
+  let fullText = '';
+  const boldPerChar = [];
+  runs.forEach((run) => {
+    fullText += run.text;
+    for (let i = 0; i < run.text.length; i++) boldPerChar.push(run.bold);
   });
 
-  const sigLineHeight = 15;
-  const sigBlockHeight = sigLineHeight * 3 + 34;
+  const words = [];
+  let i = 0;
+  while (i < fullText.length) {
+    while (i < fullText.length && fullText[i] === ' ') i++;
+    if (i >= fullText.length) break;
+    const start = i;
+    while (i < fullText.length && fullText[i] !== ' ') i++;
+    const wordBold = boldPerChar.slice(start, i);
+    const fragments = [];
+    let fragStart = 0;
+    for (let j = 1; j <= wordBold.length; j++) {
+      if (j === wordBold.length || wordBold[j] !== wordBold[fragStart]) {
+        fragments.push({ text: fullText.slice(start + fragStart, start + j), bold: wordBold[fragStart] });
+        fragStart = j;
+      }
+    }
+    words.push(fragments);
+  }
+  return words;
+}
 
+function wordUnitWidth(word, size) {
+  return word.reduce((sum, frag) => sum + textWidth(frag.text, size, frag.bold), 0);
+}
+
+function layoutParagraph(words, size) {
+  const spaceWidth = textWidth(' ', size, false);
+  const lines = [];
+  let current = [];
+  let currentWidth = 0;
+
+  words.forEach((word) => {
+    const w = wordUnitWidth(word, size);
+    const extra = current.length ? spaceWidth : 0;
+    if (current.length && currentWidth + extra + w > MAX_W) {
+      lines.push(current);
+      current = [word];
+      currentWidth = w;
+    } else {
+      current.push(word);
+      currentWidth += extra + w;
+    }
+  });
+  if (current.length) lines.push(current);
+
+  return lines.map((lineWords, idx) => {
+    const isLastLine = idx === lines.length - 1;
+    const wordsWidth = lineWords.reduce((sum, w) => sum + wordUnitWidth(w, size), 0);
+    const numGaps = lineWords.length - 1;
+    let gap = spaceWidth;
+    if (!isLastLine && numGaps > 0) {
+      const naturalWidth = wordsWidth + numGaps * spaceWidth;
+      gap = spaceWidth + (MAX_W - naturalWidth) / numGaps;
+    }
+    const items = [];
+    let x = MARGIN_LEFT;
+    lineWords.forEach((word, i) => {
+      word.forEach((frag) => {
+        items.push({ text: frag.text, bold: frag.bold, x });
+        x += textWidth(frag.text, size, frag.bold);
+      });
+      if (i < lineWords.length - 1) x += gap;
+    });
+    return items;
+  });
+}
+
+function buildPdfBinaryString(docModel) {
   const pages = [];
   let page = [];
   let y = PAGE_H - MARGIN_TOP;
-  const lineHeight = (size) => size * 1.55;
+  const lineHeight = BODY_SIZE * LINE_HEIGHT_FACTOR;
   function newPage() { pages.push(page); page = []; y = PAGE_H - MARGIN_TOP; }
+  function ensureSpace(h) { if (y - h < MARGIN_BOTTOM) newPage(); }
 
-  lines.forEach((l) => {
-    const lh = lineHeight(l.size);
-    if (y - lh < MARGIN_BOTTOM) newPage();
-    let x = MARGIN_X;
-    if (l.align === 'center') x = (PAGE_W - textWidth(l.text, l.size, l.bold)) / 2;
-    page.push({ text: l.text, x, y, size: l.size, bold: l.bold });
-    y -= lh + l.spaceAfter;
+  // Título: centrado, negrita, mayúsculas (ya viene en mayúsculas desde la matriz).
+  ensureSpace(TITLE_SIZE * LINE_HEIGHT_FACTOR);
+  const titleWidth = textWidth(docModel.titulo, TITLE_SIZE, true);
+  page.push({ text: docModel.titulo, x: (PAGE_W - titleWidth) / 2, y, size: TITLE_SIZE, bold: true });
+  y -= TITLE_SIZE * LINE_HEIGHT_FACTOR + PARAGRAPH_GAP * 1.5;
+
+  docModel.paragraphs.forEach((runs) => {
+    const words = runsToWordUnits(runs);
+    const lines = layoutParagraph(words, BODY_SIZE);
+    lines.forEach((lineItems) => {
+      ensureSpace(lineHeight);
+      lineItems.forEach((item) => {
+        page.push({ text: item.text, x: item.x, y, size: BODY_SIZE, bold: item.bold });
+      });
+      y -= lineHeight;
+    });
+    y -= PARAGRAPH_GAP;
   });
 
-  y -= 30;
+  // Firma: se mantiene la misma estructura/lógica; solo se homologa la
+  // tipografía y tamaño al resto del documento (12 pt).
+  const sigLineHeight = BODY_SIZE * LINE_HEIGHT_FACTOR;
+  const sigBlockHeight = sigLineHeight * 3 + 30;
+  y -= 20;
   docModel.firmas.forEach((f) => {
-    if (y - sigBlockHeight < MARGIN_BOTTOM) { newPage(); y -= 10; }
-    const startX = MARGIN_X;
-    page.push({ text: '_'.repeat(38), x: startX, y, size: 11, bold: false });
-    y -= lineHeight(11);
-    page.push({ text: f.nombre, x: startX, y, size: 11, bold: false });
-    y -= lineHeight(11);
+    ensureSpace(sigBlockHeight);
+    page.push({ text: '_'.repeat(38), x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
+    y -= sigLineHeight;
+    page.push({ text: f.nombre, x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
+    y -= sigLineHeight;
     if (f.ppLine) {
-      page.push({ text: f.ppLine, x: startX, y, size: 11, bold: false });
-      y -= lineHeight(11);
+      page.push({ text: f.ppLine, x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
+      y -= sigLineHeight;
     }
-    page.push({ text: f.rutLine, x: startX, y, size: 11, bold: false });
-    y -= lineHeight(11) + 26;
+    page.push({ text: f.rutLine, x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
+    y -= sigLineHeight + 22;
   });
   if (page.length) pages.push(page);
 
@@ -119,8 +188,8 @@ function assemblePdf(pages, w, h) {
     push(pageIds[idx], pageObj);
     push(contentIds[idx], contentObj);
   });
-  push(fontRegularId, `${fontRegularId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n`);
-  push(fontBoldId, `${fontBoldId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n`);
+  push(fontRegularId, `${fontRegularId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>\nendobj\n`);
+  push(fontBoldId, `${fontBoldId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>\nendobj\n`);
 
   const xrefStart = out.length;
   const maxId = fontBoldId;
@@ -154,10 +223,4 @@ export function triggerDownload(blob, fileName) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-export function openPdfInNewTab(base64) {
-  const blob = blobFromBase64Pdf(base64);
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(() => URL.revokeObjectURL(url), 20000);
 }

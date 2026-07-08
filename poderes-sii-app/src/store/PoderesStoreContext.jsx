@@ -184,6 +184,46 @@ export function PoderesStoreProvider({ children }) {
     [logInternal]
   );
 
+  // Restaura un poder eliminado lógicamente. Si su línea (track) no tiene un
+  // vigente actual, vuelve a quedar Vigente; si ya se generó una versión
+  // nueva mientras estaba eliminado, vuelve como Archivada (no puede haber
+  // dos vigentes en la misma línea).
+  const restoreRecord = useCallback(
+    (clienteId, recordId, { usuario }) => {
+      setStore((prev) => {
+        const records = prev[clienteId] || [];
+        const target = records.find((r) => r.id === recordId);
+        if (!target) return prev;
+        const track = trackKey(target.tipoMandante, target.naturalPersonId);
+        const hasVigenteInTrack = records.some(
+          (r) => r.id !== recordId && !r.eliminado && r.estado === 'vigente' && trackKey(r.tipoMandante, r.naturalPersonId) === track
+        );
+        const updated = records.map((r) =>
+          r.id === recordId
+            ? { ...r, eliminado: false, eliminadoInfo: null, estado: hasVigenteInTrack ? 'archivado' : 'vigente' }
+            : r
+        );
+        logInternal({
+          usuario,
+          cliente: getCliente(clienteId)?.razonSocial,
+          tipo: 'restauracion',
+          mensaje: `Restauración de Poder SII v${target.version} · ${trackLabel(target.tipoMandante, target.naturalPersonNombre)} (quedó ${hasVigenteInTrack ? 'archivada' : 'vigente'}).`,
+          detalle: '',
+        });
+        return { ...prev, [clienteId]: updated };
+      });
+    },
+    [logInternal]
+  );
+
+  const eliminados = useMemo(() => {
+    const list = [];
+    Object.entries(store).forEach(([clienteId, records]) => {
+      records.filter((r) => r.eliminado).forEach((r) => list.push({ clienteId, ...r }));
+    });
+    return list.sort((a, b) => (b.eliminadoInfo?.fechaISO || '').localeCompare(a.eliminadoInfo?.fechaISO || ''));
+  }, [store]);
+
   const findRecord = useCallback(
     (clienteId, recordId) => (store[clienteId] || []).find((r) => r.id === recordId) || null,
     [store]
@@ -197,9 +237,9 @@ export function PoderesStoreProvider({ children }) {
   const value = useMemo(
     () => ({
       store, internalLog, logInternal, vigenteFor, archivedFor, tracksForCliente,
-      clientesConPoder, addVersion, softDelete, findRecord, resetDemo,
+      clientesConPoder, addVersion, softDelete, restoreRecord, eliminados, findRecord, resetDemo,
     }),
-    [store, internalLog, logInternal, vigenteFor, archivedFor, tracksForCliente, clientesConPoder, addVersion, softDelete, findRecord, resetDemo]
+    [store, internalLog, logInternal, vigenteFor, archivedFor, tracksForCliente, clientesConPoder, addVersion, softDelete, restoreRecord, eliminados, findRecord, resetDemo]
   );
 
   return <PoderesStoreContext.Provider value={value}>{children}</PoderesStoreContext.Provider>;

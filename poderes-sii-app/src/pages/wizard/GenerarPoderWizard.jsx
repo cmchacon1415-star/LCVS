@@ -72,7 +72,12 @@ function WizardBody() {
       </div>
       {step < TOTAL_STEPS && (
         <div className="footer-nav">
-          <button className="btn btn-ghost" onClick={() => navigate('/gestion-documental/poderes-sii')}>Cancelar</button>
+          <button
+            className="btn btn-ghost"
+            onClick={() => navigate(wizard.forceNewVersion ? '/gestion-documental/poderes-sii/generados' : '/gestion-documental/poderes-sii')}
+          >
+            {wizard.forceNewVersion ? 'Cancelar y volver a Poderes Generados' : 'Cancelar'}
+          </button>
           <div style={{ display: 'flex', gap: 10 }}>
             {step > 1 && <button className="btn btn-secondary" onClick={handlePrev}>Anterior</button>}
             <button className="btn btn-primary" onClick={handleNext}>Continuar</button>

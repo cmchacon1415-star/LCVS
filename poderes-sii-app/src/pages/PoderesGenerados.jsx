@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DeleteModal from '../components/modals/DeleteModal';
 import InternalLogModal from '../components/modals/InternalLogModal';
+import PapeleraModal from '../components/modals/PapeleraModal';
+import PdfViewerModal from '../components/modals/PdfViewerModal';
 import Icon from '../components/Icon';
 import { CURRENT_USER } from '../data/clientes';
 import { usePoderesStore, trackLabel } from '../store/PoderesStoreContext';
 import { useToast } from '../components/ToastContext';
-import { openPdfInNewTab, triggerDownload, blobFromBase64Pdf } from '../utils/pdf';
+import { triggerDownload, blobFromBase64Pdf } from '../utils/pdf';
 import { fechaCortaFromISO, normalize } from '../utils/text';
 
-function TrackBlock({ cliente, track }) {
+function TrackBlock({ cliente, track, onVerPdf }) {
   const { vigenteFor, archivedFor, softDelete } = usePoderesStore();
   const navigate = useNavigate();
   const showToast = useToast();
@@ -20,7 +22,6 @@ function TrackBlock({ cliente, track }) {
   const archivadas = archivedFor(cliente.id, track.key);
   const label = trackLabel(track.tipoMandante, track.naturalPersonNombre);
 
-  function verPdf(record) { openPdfInNewTab(record.pdfBase64); }
   function descargarPdf(record) { triggerDownload(blobFromBase64Pdf(record.pdfBase64), record.fileName); }
   function nuevaVersion() {
     navigate('/gestion-documental/poderes-sii/generar', {
@@ -30,7 +31,7 @@ function TrackBlock({ cliente, track }) {
   function confirmarEliminar(motivo) {
     softDelete(cliente.id, vigente.id, { usuario: CURRENT_USER, motivo });
     setDeleting(false);
-    showToast('Poder SII eliminado. Queda registrado internamente para trazabilidad.');
+    showToast('Poder SII eliminado. Queda registrado internamente y puede restaurarse desde la Papelera.');
   }
 
   return (
@@ -48,7 +49,9 @@ function TrackBlock({ cliente, track }) {
             Mandatarios incluidos: {vigente.mandatarios.map((m) => m.nombre).join(', ')}
           </div>
           <div className="poder-actions">
-            <button className="btn btn-secondary btn-sm" onClick={() => verPdf(vigente)}><Icon name="eye" /> Ver PDF</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => onVerPdf(vigente, `${cliente.razonSocial} · ${label} · v${vigente.version}`)}>
+              <Icon name="eye" /> Ver PDF
+            </button>
             <button className="btn btn-secondary btn-sm" onClick={() => descargarPdf(vigente)}><Icon name="download" /> Descargar</button>
             <button className="btn btn-secondary btn-sm" onClick={nuevaVersion}><Icon name="plusCircle" /> Generar nueva versión</button>
             <button className="btn btn-danger btn-sm" onClick={() => setDeleting(true)}><Icon name="trash" /> Eliminar</button>
@@ -70,7 +73,12 @@ function TrackBlock({ cliente, track }) {
                   <div>
                     Versión {v.version} · Fecha: {fechaCortaFromISO(v.fechaISO)} · Creado por: {v.usuario} · <span className="pill pill-archivado">Archivado</span>
                   </div>
-                  <button className="btn btn-secondary btn-sm" onClick={() => verPdf(v)}><Icon name="eye" /> Ver PDF</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => onVerPdf(v, `${cliente.razonSocial} · ${label} · v${v.version} (archivada)`)}>
+                      <Icon name="eye" /> Ver PDF
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => descargarPdf(v)}><Icon name="download" /> Descargar</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -90,7 +98,7 @@ function TrackBlock({ cliente, track }) {
   );
 }
 
-function ClienteFolder({ cliente }) {
+function ClienteFolder({ cliente, onVerPdf }) {
   const { tracksForCliente } = usePoderesStore();
   const tracks = tracksForCliente(cliente.id);
   return (
@@ -101,18 +109,28 @@ function ClienteFolder({ cliente }) {
           <div className="poder-meta"><span>RUT: {cliente.rut}</span></div>
         </div>
       </div>
-      {tracks.map((track) => <TrackBlock cliente={cliente} track={track} key={track.key} />)}
+      {tracks.map((track) => <TrackBlock cliente={cliente} track={track} key={track.key} onVerPdf={onVerPdf} />)}
     </div>
   );
 }
 
 export default function PoderesGenerados() {
-  const { clientesConPoder, internalLog, resetDemo } = usePoderesStore();
+  const { clientesConPoder, internalLog, eliminados, restoreRecord, resetDemo } = usePoderesStore();
   const [search, setSearch] = useState('');
   const [showLog, setShowLog] = useState(false);
+  const [showPapelera, setShowPapelera] = useState(false);
+  const [viewer, setViewer] = useState(null);
   const showToast = useToast();
 
   const filtered = clientesConPoder.filter((c) => normalize(c.razonSocial).includes(normalize(search)));
+
+  function handleVerPdf(record, title) {
+    setViewer({ record, title });
+  }
+  function handleRestaurar(record) {
+    restoreRecord(record.clienteId, record.id, { usuario: CURRENT_USER });
+    showToast('Poder SII restaurado.');
+  }
 
   return (
     <>
@@ -121,7 +139,10 @@ export default function PoderesGenerados() {
           <h1 className="page-title">Poderes Generados</h1>
           <p className="page-subtitle">Poderes SII generados, ordenados por cliente.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowPapelera(true)}>
+            <Icon name="trash" /> Papelera ({eliminados.length})
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowLog(true)}>
             <Icon name="shield" /> Registro interno ({internalLog.length})
           </button>
@@ -146,9 +167,20 @@ export default function PoderesGenerados() {
             </div>
           </div>
         )}
-        {filtered.map((c) => <ClienteFolder cliente={c} key={c.id} />)}
+        {filtered.map((c) => <ClienteFolder cliente={c} key={c.id} onVerPdf={handleVerPdf} />)}
       </div>
       {showLog && <InternalLogModal log={internalLog} onClose={() => setShowLog(false)} />}
+      {showPapelera && (
+        <PapeleraModal eliminados={eliminados} onRestaurar={handleRestaurar} onClose={() => setShowPapelera(false)} />
+      )}
+      {viewer && (
+        <PdfViewerModal
+          title={viewer.title}
+          base64={viewer.record.pdfBase64}
+          fileName={viewer.record.fileName}
+          onClose={() => setViewer(null)}
+        />
+      )}
     </>
   );
 }

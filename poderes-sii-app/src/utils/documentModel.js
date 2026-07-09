@@ -94,13 +94,13 @@ export function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, 
   // -------- Párrafo 3: facultades para trámites ante el SII --------
   const sujetoPlural = plural ? 'los Mandatarios' : mandatarioSingularSujeto(mandatarios[0].nombre);
   const parrafo3 = [
-    seg(`En el ejercicio del presente mandato, ${sujetoPlural} ${plural ? 'podrán' : 'podrá'} realizar, en nombre y representación de la Parte Mandante, todos los trámites necesarios ante el Servicio de Impuestos Internos, entre otros: inicio de actividades, término de giro, presentación y rectificación de declaraciones juradas, formularios y declaraciones de impuestos, solicitudes de modificación de datos, ampliaciones y modificaciones de giro, obtención y cambio de clave tributaria, suscripción de convenios de pago, solicitud de copias de giros y certificados de deudas fiscales, y timbraje de documentos tributarios, para lo cual ${plural ? 'se les confieren' : 'se le confieren'} las más amplias facultades a fin de que ${plural ? 'procedan' : 'proceda'} conforme a derecho.`),
+    seg(`En el ejercicio del presente mandato, ${sujetoPlural} ${plural ? 'podrán' : 'podrá'} realizar, en nombre y representación de la Parte Mandante, todos los trámites necesarios ante el Servicio de Impuestos Internos, entre otros: inicio de actividades; término de giro; presentación y rectificación de declaraciones juradas, formularios y declaraciones de impuestos; solicitudes de modificación de datos; ampliaciones y modificaciones de giro; obtención y cambio de clave tributaria; suscripción de convenios de pago; solicitud de copias de giros y certificados de deudas fiscales; y timbraje de documentos tributarios, para lo cual ${plural ? 'se les confieren' : 'se le confieren'} las más amplias facultades a fin de que ${plural ? 'procedan' : 'proceda'} conforme a derecho.`),
   ];
 
   // -------- Párrafo 4: facultades especiales (Formulario 3230, claves SII, etc.) --------
   const sujetoDativoPlural = plural ? 'a los Mandatarios' : mandatarioSingularDativo(mandatarios[0].nombre);
   const parrafo4 = [
-    seg(`Para el eficaz y correcto desempeño del presente mandato, se faculta expresamente ${sujetoDativoPlural} para suscribir y presentar el Formulario 3230 y cualquier otro formulario o solicitud ante el Servicio de Impuestos Internos, obtener y operar claves SII, retirar, suscribir y presentar toda clase de documentos, solicitudes y formularios, así como ejecutar cualquier otro acto o gestión necesaria o conveniente para el correcto cumplimiento del presente mandato.`),
+    seg(`Para el eficaz y correcto desempeño del presente mandato, se faculta expresamente ${sujetoDativoPlural} para suscribir y presentar el Formulario 3230 y cualquier otro formulario o solicitud ante el Servicio de Impuestos Internos; obtener y operar claves SII; retirar, suscribir y presentar toda clase de documentos, solicitudes y formularios; así como ejecutar cualquier otro acto o gestión necesaria o conveniente para el correcto cumplimiento del presente mandato.`),
   ];
 
   // -------- Cláusula final --------

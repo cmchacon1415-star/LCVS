@@ -66,6 +66,18 @@ function loadJSON(key, fallback) {
   }
 }
 
+// En contextos con acceso a almacenamiento restringido (p. ej. un iframe
+// sandboxed sin allow-same-origin) localStorage puede lanzar una excepción
+// incluso solo al leer la propiedad. La app debe seguir funcionando en ese
+// caso, solo sin persistencia entre recargas.
+function saveJSON(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // sin persistencia disponible; el estado sigue viviendo en memoria.
+  }
+}
+
 const PoderesStoreContext = createContext(null);
 
 export function PoderesStoreProvider({ children }) {
@@ -76,10 +88,10 @@ export function PoderesStoreProvider({ children }) {
   const [internalLog, setInternalLog] = useState(() => loadJSON(LOG_KEY, []));
 
   useEffect(() => {
-    localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    saveJSON(STORE_KEY, store);
   }, [store]);
   useEffect(() => {
-    localStorage.setItem(LOG_KEY, JSON.stringify(internalLog));
+    saveJSON(LOG_KEY, internalLog);
   }, [internalLog]);
 
   const logInternal = useCallback((entry) => {

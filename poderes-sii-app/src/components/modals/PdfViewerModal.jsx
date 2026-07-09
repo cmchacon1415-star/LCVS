@@ -1,14 +1,15 @@
 import { useEffect, useMemo } from 'react';
 import Icon from '../Icon';
 import DownloadPdfLink from '../DownloadPdfLink';
+import PdfCanvasRenderer from '../PdfCanvasRenderer';
 import { blobFromBase64Pdf } from '../../utils/pdf';
 
-// Visor de PDF embebido en la propia app (en vez de window.open a una pestaña
-// nueva): funciona igual dentro de vistas previas embebidas o navegadores que
-// bloquean ventanas emergentes. "Descargar" y "Abrir en pestaña nueva" son
-// enlaces <a> reales, no clics disparados por script, para que funcionen
-// incluso en contextos que solo permiten descargas/navegación iniciadas
-// directamente por el usuario.
+// Vista previa renderizada con PDF.js sobre <canvas> (no el visor de PDF
+// nativo del navegador, que Chromium deshabilita por completo dentro de
+// cualquier iframe con sandbox). "Descargar" y "Abrir en pestaña nueva" son
+// enlaces <a> reales, no clics disparados por script, para que funcionen en
+// contextos que solo permiten descargas/navegación iniciadas directamente
+// por el usuario.
 export default function PdfViewerModal({ title, base64, fileName, onClose }) {
   const url = useMemo(() => URL.createObjectURL(blobFromBase64Pdf(base64)), [base64]);
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
@@ -31,7 +32,7 @@ export default function PdfViewerModal({ title, base64, fileName, onClose }) {
           </div>
         </div>
         <div className="pdf-viewer-body">
-          <iframe src={url} title={title} className="pdf-viewer-frame" />
+          <PdfCanvasRenderer base64={base64} />
         </div>
       </div>
     </div>

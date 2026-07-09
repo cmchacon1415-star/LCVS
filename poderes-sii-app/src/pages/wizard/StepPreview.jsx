@@ -5,7 +5,7 @@ import PdfViewerModal from '../../components/modals/PdfViewerModal';
 import { CURRENT_USER, getCliente, getMandatario, getRepresentante } from '../../data/clientes';
 import { usePoderesStore, trackKey, trackLabel } from '../../store/PoderesStoreContext';
 import { useToast } from '../../components/ToastContext';
-import { pdfBase64FromModel, triggerDownload, blobFromBase64Pdf } from '../../utils/pdf';
+import { pdfBase64FromModel, triggerDownload } from '../../utils/pdf';
 import { useWizard } from './WizardContext';
 import DuplicateModal from './modals/DuplicateModal';
 
@@ -53,7 +53,7 @@ export default function StepPreview() {
       observaciones: wizard.observaciones || '',
       pdfBase64: base64,
     });
-    triggerDownload(blobFromBase64Pdf(base64), created.fileName);
+    triggerDownload(base64, created.fileName);
     showToast(`Poder SII generado (${created.fileName}).`);
     setJustGenerated(created);
   }

@@ -1,15 +1,7 @@
-let cachedCtx = null;
-function pdfCtx() {
-  if (!cachedCtx) {
-    const c = document.createElement('canvas');
-    cachedCtx = c.getContext('2d');
-  }
-  return cachedCtx;
-}
+import { textWidthPt } from './afmWidths';
+
 function textWidth(text, size, bold) {
-  const ctx = pdfCtx();
-  ctx.font = `${bold ? 'bold ' : ''}${size}px "Times New Roman", Times, serif`;
-  return ctx.measureText(text).width;
+  return textWidthPt(text, size, bold);
 }
 function pdfEscape(s) {
   return s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
@@ -109,6 +101,63 @@ function layoutParagraph(words, size) {
   });
 }
 
+// Envuelve un texto en líneas que caben dentro de maxWidth y devuelve cada
+// línea ya centrada (x absoluto). Se usa para el título: al ser todo
+// mayúsculas y negrita a 14 pt, el texto completo puede ser más ancho que
+// el área de contenido y necesita partirse en más de una línea, igual que
+// cualquier párrafo — si se dibuja como una sola línea "centrada" respecto
+// del ancho de la página completa, cuando no entra se sale por ambos
+// márgenes en vez de ajustarse a ellos.
+function wrapCenteredLines(text, maxWidth, size, bold) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  words.forEach((w) => {
+    const test = current ? `${current} ${w}` : w;
+    if (current && textWidth(test, size, bold) > maxWidth) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = test;
+    }
+  });
+  if (current) lines.push(current);
+  return lines.map((line) => ({
+    text: line,
+    x: MARGIN_LEFT + Math.max(0, (maxWidth - textWidth(line, size, bold)) / 2),
+  }));
+}
+
+// Firma: réplica en el PDF de la disposición usada en la vista previa en
+// pantalla (.doc-signatures): bloques centrados, dispuestos en fila y
+// centrados como grupo, envolviendo a una fila nueva si no caben todos.
+const SIG_COL_WIDTH = 220;
+const SIG_COL_GAP = 40;
+const SIG_LINE_HEIGHT = BODY_SIZE * LINE_HEIGHT_FACTOR;
+
+function buildFirmaRows(firmas) {
+  const perRow = Math.max(1, Math.floor((MAX_W + SIG_COL_GAP) / (SIG_COL_WIDTH + SIG_COL_GAP)));
+  const rows = [];
+  for (let i = 0; i < firmas.length; i += perRow) rows.push(firmas.slice(i, i + perRow));
+  return rows;
+}
+
+function firmaBlockHeight(f) {
+  return SIG_LINE_HEIGHT * (f.ppLine ? 4 : 3) + 8;
+}
+
+function centeredX(colStartX, colWidth, text, size, bold) {
+  const w = textWidth(text, size, bold);
+  return colStartX + Math.max(0, (colWidth - w) / 2);
+}
+
+function signatureLineText(colWidth) {
+  const underscoreWidth = textWidth('_', BODY_SIZE, false);
+  const target = colWidth - 16;
+  const count = Math.max(10, Math.round(target / underscoreWidth));
+  return '_'.repeat(count);
+}
+
 function buildPdfBinaryString(docModel) {
   const pages = [];
   let page = [];
@@ -118,10 +167,13 @@ function buildPdfBinaryString(docModel) {
   function ensureSpace(h) { if (y - h < MARGIN_BOTTOM) newPage(); }
 
   // Título: centrado, negrita, mayúsculas (ya viene en mayúsculas desde la matriz).
-  ensureSpace(TITLE_SIZE * LINE_HEIGHT_FACTOR);
-  const titleWidth = textWidth(docModel.titulo, TITLE_SIZE, true);
-  page.push({ text: docModel.titulo, x: (PAGE_W - titleWidth) / 2, y, size: TITLE_SIZE, bold: true });
-  y -= TITLE_SIZE * LINE_HEIGHT_FACTOR + PARAGRAPH_GAP * 1.5;
+  const titleLines = wrapCenteredLines(docModel.titulo, MAX_W, TITLE_SIZE, true);
+  titleLines.forEach((line) => {
+    ensureSpace(TITLE_SIZE * LINE_HEIGHT_FACTOR);
+    page.push({ text: line.text, x: line.x, y, size: TITLE_SIZE, bold: true });
+    y -= TITLE_SIZE * LINE_HEIGHT_FACTOR;
+  });
+  y -= PARAGRAPH_GAP * 1.5;
 
   docModel.paragraphs.forEach((runs) => {
     const words = runsToWordUnits(runs);
@@ -136,23 +188,29 @@ function buildPdfBinaryString(docModel) {
     y -= PARAGRAPH_GAP;
   });
 
-  // Firma: se mantiene la misma estructura/lógica; solo se homologa la
-  // tipografía y tamaño al resto del documento (12 pt).
-  const sigLineHeight = BODY_SIZE * LINE_HEIGHT_FACTOR;
-  const sigBlockHeight = sigLineHeight * 3 + 30;
+  // Firma: bloques centrados, en fila(s), replicando la vista previa en pantalla.
   y -= 20;
-  docModel.firmas.forEach((f) => {
-    ensureSpace(sigBlockHeight);
-    page.push({ text: '_'.repeat(38), x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
-    y -= sigLineHeight;
-    page.push({ text: f.nombre, x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
-    y -= sigLineHeight;
-    if (f.ppLine) {
-      page.push({ text: f.ppLine, x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
-      y -= sigLineHeight;
-    }
-    page.push({ text: f.rutLine, x: MARGIN_LEFT, y, size: BODY_SIZE, bold: false });
-    y -= sigLineHeight + 22;
+  const rows = buildFirmaRows(docModel.firmas);
+  rows.forEach((rowFirmas) => {
+    const rowHeight = Math.max(...rowFirmas.map(firmaBlockHeight));
+    ensureSpace(rowHeight);
+    const rowWidth = rowFirmas.length * SIG_COL_WIDTH + (rowFirmas.length - 1) * SIG_COL_GAP;
+    const rowStartX = MARGIN_LEFT + Math.max(0, (MAX_W - rowWidth) / 2);
+    rowFirmas.forEach((f, colIdx) => {
+      const colX = rowStartX + colIdx * (SIG_COL_WIDTH + SIG_COL_GAP);
+      let ly = y;
+      const sigLine = signatureLineText(SIG_COL_WIDTH);
+      page.push({ text: sigLine, x: centeredX(colX, SIG_COL_WIDTH, sigLine, BODY_SIZE, false), y: ly, size: BODY_SIZE, bold: false });
+      ly -= SIG_LINE_HEIGHT;
+      page.push({ text: f.nombre, x: centeredX(colX, SIG_COL_WIDTH, f.nombre, BODY_SIZE, false), y: ly, size: BODY_SIZE, bold: false });
+      ly -= SIG_LINE_HEIGHT;
+      if (f.ppLine) {
+        page.push({ text: f.ppLine, x: centeredX(colX, SIG_COL_WIDTH, f.ppLine, BODY_SIZE, false), y: ly, size: BODY_SIZE, bold: false });
+        ly -= SIG_LINE_HEIGHT;
+      }
+      page.push({ text: f.rutLine, x: centeredX(colX, SIG_COL_WIDTH, f.rutLine, BODY_SIZE, false), y: ly, size: BODY_SIZE, bold: false });
+    });
+    y -= rowHeight + 26;
   });
   if (page.length) pages.push(page);
 
@@ -206,21 +264,14 @@ function assemblePdf(pages, w, h) {
 export function pdfBase64FromModel(docModel) {
   return btoa(buildPdfBinaryString(docModel));
 }
-function binaryStringToUint8(binStr) {
-  const arr = new Uint8Array(binStr.length);
-  for (let i = 0; i < binStr.length; i++) arr[i] = binStr.charCodeAt(i) & 0xff;
-  return arr;
+export function pdfDataUri(base64) {
+  return `data:application/pdf;base64,${base64}`;
 }
-export function blobFromBase64Pdf(base64) {
-  return new Blob([binaryStringToUint8(atob(base64))], { type: 'application/pdf' });
-}
-export function triggerDownload(blob, fileName) {
-  const url = URL.createObjectURL(blob);
+export function triggerDownload(base64, fileName) {
   const a = document.createElement('a');
-  a.href = url;
+  a.href = pdfDataUri(base64);
   a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }

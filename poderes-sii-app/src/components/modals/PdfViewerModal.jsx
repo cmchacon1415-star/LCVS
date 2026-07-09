@@ -1,18 +1,16 @@
-import { useEffect, useMemo } from 'react';
 import Icon from '../Icon';
 import DownloadPdfLink from '../DownloadPdfLink';
 import PdfCanvasRenderer from '../PdfCanvasRenderer';
-import { blobFromBase64Pdf } from '../../utils/pdf';
+import { pdfDataUri } from '../../utils/pdf';
 
 // Vista previa renderizada con PDF.js sobre <canvas> (no el visor de PDF
 // nativo del navegador, que Chromium deshabilita por completo dentro de
 // cualquier iframe con sandbox). "Descargar" y "Abrir en pestaña nueva" son
-// enlaces <a> reales, no clics disparados por script, para que funcionen en
-// contextos que solo permiten descargas/navegación iniciadas directamente
-// por el usuario.
+// enlaces <a> reales con un data: URI (no un blob: URL, que solo vive
+// dentro del contexto que lo creó), para que funcionen en contextos que
+// solo permiten descargas/navegación iniciadas directamente por el usuario.
 export default function PdfViewerModal({ title, base64, fileName, onClose }) {
-  const url = useMemo(() => URL.createObjectURL(blobFromBase64Pdf(base64)), [base64]);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  const url = pdfDataUri(base64);
 
   return (
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>

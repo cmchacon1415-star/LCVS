@@ -1,6 +1,7 @@
 import {
   donDonaByName,
   fechaTextoFromISO,
+  inferGenderFromName,
   mandatarioSingularDativo,
   mandatarioSingularSujeto,
   mandatarioSingularTitulo,
@@ -48,6 +49,11 @@ export function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, 
   const fechaTexto = fechaTextoFromISO(fecha);
   const titulo = 'PODER ESPECIAL PARA TRÁMITES ANTE EL SERVICIO DE IMPUESTOS INTERNOS';
 
+  // Persona jurídica: "la Mandante" (la sociedad) siempre. Persona natural:
+  // el artículo sigue el género inferido del nombre de esa persona.
+  const mandanteMasculino = tipoMandante === 'natural' && inferGenderFromName(personaNatural.nombre) === 'M';
+  const articuloMandante = mandanteMasculino ? 'el' : 'la';
+
   // -------- Párrafo 1: comparecencia --------
   let parrafo1;
   if (tipoMandante === 'natural') {
@@ -56,7 +62,7 @@ export function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, 
       ...personListRuns([personaNatural], { boldName: true, boldRut: true }),
       seg(', con domicilio en '),
       seg(domicilioCompleto(cliente), true),
-      seg(', en adelante la "Mandante" o "Parte Mandante", quien expone:'),
+      seg(`, en adelante ${articuloMandante} "Mandante" o "Parte Mandante", quien expone:`),
     ];
   } else {
     const variosRepresentantes = firmantes.length > 1;
@@ -78,7 +84,11 @@ export function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, 
   // -------- Párrafo 2: constitución del mandato --------
   const plural = mandatarios.length > 1;
   const parrafo2 = [
-    seg('Por el presente instrumento, la Parte Mandante confiere mandato especial, tan amplio y suficiente como en derecho corresponda, '),
+    seg(
+      mandanteMasculino
+        ? 'Por el presente instrumento, el Mandante confiere mandato especial, tan amplio y suficiente como en derecho corresponda, '
+        : 'Por el presente instrumento, la Parte Mandante confiere mandato especial, tan amplio y suficiente como en derecho corresponda, '
+    ),
     seg(plural ? 'a las siguientes personas: ' : 'a la siguiente persona: '),
     ...personListRuns(mandatarios, { boldName: true, boldRut: true }),
     seg(', en adelante '),
@@ -109,7 +119,8 @@ export function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, 
 
   // -------- Cláusula final --------
   const cierre = [
-    seg('El presente mandato se otorga por tiempo indefinido y no se encuentra sujeto a plazo ni condición. DOY FE.-'),
+    seg('El presente mandato no se encuentra sujeto a plazo ni condición. '),
+    seg('DOY FE.-', true),
   ];
 
   const paragraphs = [parrafo1, parrafo2, parrafo3, parrafo4, cierre];

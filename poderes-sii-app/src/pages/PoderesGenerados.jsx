@@ -4,11 +4,11 @@ import DeleteModal from '../components/modals/DeleteModal';
 import InternalLogModal from '../components/modals/InternalLogModal';
 import PapeleraModal from '../components/modals/PapeleraModal';
 import PdfViewerModal from '../components/modals/PdfViewerModal';
+import DownloadPdfLink from '../components/DownloadPdfLink';
 import Icon from '../components/Icon';
 import { CURRENT_USER } from '../data/clientes';
 import { usePoderesStore, trackLabel } from '../store/PoderesStoreContext';
 import { useToast } from '../components/ToastContext';
-import { triggerDownload, blobFromBase64Pdf } from '../utils/pdf';
 import { fechaCortaFromISO, normalize } from '../utils/text';
 
 function TrackBlock({ cliente, track, onVerPdf }) {
@@ -22,7 +22,6 @@ function TrackBlock({ cliente, track, onVerPdf }) {
   const archivadas = archivedFor(cliente.id, track.key);
   const label = trackLabel(track.tipoMandante, track.naturalPersonNombre);
 
-  function descargarPdf(record) { triggerDownload(blobFromBase64Pdf(record.pdfBase64), record.fileName); }
   function nuevaVersion() {
     navigate('/gestion-documental/poderes-sii/generar', {
       state: { clienteId: cliente.id, tipoMandante: track.tipoMandante, naturalPersonId: track.naturalPersonId, forceNewVersion: true },
@@ -52,7 +51,9 @@ function TrackBlock({ cliente, track, onVerPdf }) {
             <button className="btn btn-secondary btn-sm" onClick={() => onVerPdf(vigente, `${cliente.razonSocial} · ${label} · v${vigente.version}`)}>
               <Icon name="eye" /> Ver PDF
             </button>
-            <button className="btn btn-secondary btn-sm" onClick={() => descargarPdf(vigente)}><Icon name="download" /> Descargar</button>
+            <DownloadPdfLink base64={vigente.pdfBase64} fileName={vigente.fileName} className="btn btn-secondary btn-sm">
+              <Icon name="download" /> Descargar
+            </DownloadPdfLink>
             <button className="btn btn-secondary btn-sm" onClick={nuevaVersion}><Icon name="plusCircle" /> Generar nueva versión</button>
             <button className="btn btn-danger btn-sm" onClick={() => setDeleting(true)}><Icon name="trash" /> Eliminar</button>
           </div>
@@ -77,7 +78,9 @@ function TrackBlock({ cliente, track, onVerPdf }) {
                     <button className="btn btn-secondary btn-sm" onClick={() => onVerPdf(v, `${cliente.razonSocial} · ${label} · v${v.version} (archivada)`)}>
                       <Icon name="eye" /> Ver PDF
                     </button>
-                    <button className="btn btn-secondary btn-sm" onClick={() => descargarPdf(v)}><Icon name="download" /> Descargar</button>
+                    <DownloadPdfLink base64={v.pdfBase64} fileName={v.fileName} className="btn btn-secondary btn-sm">
+                      <Icon name="download" /> Descargar
+                    </DownloadPdfLink>
                   </div>
                 </div>
               ))}

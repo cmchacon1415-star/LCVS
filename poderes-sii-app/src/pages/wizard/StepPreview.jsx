@@ -16,6 +16,7 @@ export default function StepPreview() {
   const navigate = useNavigate();
   const [duplicate, setDuplicate] = useState(null);
   const [viewingPrevious, setViewingPrevious] = useState(null);
+  const [justGenerated, setJustGenerated] = useState(null);
 
   const model = currentDocumentModel();
   const cancelLabel = wizard.forceNewVersion ? 'Cancelar y volver a Poderes Generados' : 'Cancelar';
@@ -53,8 +54,8 @@ export default function StepPreview() {
       pdfBase64: base64,
     });
     triggerDownload(blobFromBase64Pdf(base64), created.fileName);
-    showToast(`Poder SII generado y descargado (${created.fileName}). Si la descarga no se inició sola, puedes abrirlo desde "Poderes Generados" con Ver PDF o Descargar.`);
-    navigate('/gestion-documental/poderes-sii/generados');
+    showToast(`Poder SII generado (${created.fileName}).`);
+    setJustGenerated(created);
   }
 
   function handleGenerar() {
@@ -112,6 +113,15 @@ export default function StepPreview() {
           base64={viewingPrevious.pdfBase64}
           fileName={viewingPrevious.fileName}
           onClose={() => setViewingPrevious(null)}
+        />
+      )}
+
+      {justGenerated && (
+        <PdfViewerModal
+          title={`Poder SII generado · versión ${justGenerated.version}`}
+          base64={justGenerated.pdfBase64}
+          fileName={justGenerated.fileName}
+          onClose={() => { setJustGenerated(null); navigate('/gestion-documental/poderes-sii/generados'); }}
         />
       )}
     </>

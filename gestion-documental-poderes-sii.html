@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sur Consulting · Gestión Documental (Prototipo)</title>
+<style>
+:root{
+  --bg:#f1f5f9; --sidebar-bg:#ffffff; --card-bg:#ffffff; --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#1e293b; --text-muted:#64748b; --text-faint:#94a3b8;
+  --primary:#2563eb; --primary-dark:#1d4ed8; --primary-light:#eff6ff;
+  --success:#16a34a; --success-light:#f0fdf4; --warning:#d97706; --warning-light:#fffbeb;
+  --danger:#dc2626; --danger-light:#fef2f2; --radius:14px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+a{color:inherit;}
+.hidden{display:none !important;}
+
+/* Layout */
+.app{display:flex;min-height:100vh;}
+.sidebar{width:76px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;position:fixed;top:0;bottom:0;left:0;z-index:40;}
+.sidebar-logo{width:40px;height:40px;border-radius:10px;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;letter-spacing:.5px;margin-bottom:22px;}
+.sidebar-icons{display:flex;flex-direction:column;gap:8px;flex:1;}
+.sidebar-icons.bottom{flex:0;margin-top:auto;}
+.side-icon{position:relative;width:48px;height:48px;border-radius:12px;border:none;background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
+.side-icon:hover{background:#f1f5f9;color:var(--text);}
+.side-icon.active{background:var(--primary-light);color:var(--primary-dark);}
+.side-icon svg{width:22px;height:22px;}
+.side-badge{position:absolute;top:2px;right:2px;background:var(--danger);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:6px;letter-spacing:.3px;}
+.side-pulse{position:absolute;inset:2px;border-radius:12px;box-shadow:0 0 0 0 rgba(37,99,235,.55);animation:pulse 1.8s ease-out 3;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.55);}70%{box-shadow:0 0 0 8px rgba(37,99,235,0);}100%{box-shadow:0 0 0 0 rgba(37,99,235,0);}}
+.side-tooltip{position:absolute;left:60px;top:50%;transform:translateY(-50%);background:#0f172a;color:#fff;font-size:12px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+.side-icon:hover .side-tooltip{opacity:1;}
+
+.main{margin-left:76px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{height:60px;border-bottom:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:30;}
+.breadcrumb{font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.breadcrumb b{color:var(--text);font-weight:600;}
+.breadcrumb .crumb-link{cursor:pointer;color:var(--primary);}
+.breadcrumb .crumb-link:hover{text-decoration:underline;}
+.user-chip{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--text);}
+.content{flex:1;padding:28px 32px 60px;max-width:980px;width:100%;margin:0 auto;}
+
+.page-title{font-size:22px;font-weight:800;margin:0 0 4px;color:#0f172a;}
+.page-subtitle{font-size:14px;color:var(--text-muted);margin:0 0 24px;}
+
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
+.card + .card{margin-top:16px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media (max-width:720px){.grid-2{grid-template-columns:1fr;}}
+
+.big-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px;}
+@media (max-width:720px){.big-cards{grid-template-columns:1fr;}}
+.big-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:28px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s;text-align:left;}
+.big-card:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(37,99,235,.10);transform:translateY(-1px);}
+.big-card .icon-wrap{width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+.big-card h3{margin:0 0 6px;font-size:16px;font-weight:700;}
+.big-card p{margin:0;font-size:13px;color:var(--text-muted);line-height:1.5;}
+
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:600;border:1px solid transparent;transition:.15s;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary:disabled{background:#93c5fd;cursor:not-allowed;}
+.btn-secondary{background:#fff;color:var(--text);border-color:var(--border-strong);}
+.btn-secondary:hover{background:#f8fafc;}
+.btn-ghost{background:transparent;color:var(--text-muted);}
+.btn-ghost:hover{color:var(--text);}
+.btn-danger{background:#fff;color:var(--danger);border-color:#fecaca;}
+.btn-danger:hover{background:var(--danger-light);}
+.btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px;}
+.btn svg{width:15px;height:15px;}
+
+label.field-label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.field-hint{font-size:11.5px;color:var(--text-faint);margin-top:4px;}
+.field-error{font-size:11.5px;color:var(--danger);margin-top:4px;display:none;}
+.field.invalid .field-error{display:block;}
+.field.invalid input,.field.invalid select,.field.invalid .combobox-input{border-color:var(--danger) !important;background:var(--danger-light);}
+input[type=text],input[type=date],select,textarea{width:100%;padding:9px 12px;border-radius:9px;border:1px solid var(--border-strong);font-size:13.5px;outline:none;background:#fff;color:var(--text);}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+textarea{resize:vertical;min-height:64px;}
+.field{margin-bottom:16px;}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media (max-width:720px){.row-3{grid-template-columns:1fr;}}
+
+/* stepper */
+.stepper{display:flex;align-items:center;margin-bottom:26px;}
+.stepper-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;font-size:11px;font-weight:600;color:var(--text-faint);}
+.stepper-item:not(:last-child)::after{content:'';position:absolute;top:16px;left:50%;width:100%;height:2px;background:var(--border);z-index:0;}
+.stepper-item.done:not(:last-child)::after{background:var(--primary);}
+.stepper-circle{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;z-index:1;margin-bottom:6px;color:var(--text-faint);}
+.stepper-item.active .stepper-circle{border-color:var(--primary);color:var(--primary);box-shadow:0 0 0 4px var(--primary-light);}
+.stepper-item.active{color:var(--primary-dark);}
+.stepper-item.done .stepper-circle{border-color:var(--primary);background:var(--primary);color:#fff;}
+.stepper-item.done{color:var(--text);}
+.stepper-circle svg{width:14px;height:14px;}
+.stepper-label{display:none;}
+@media (min-width:640px){.stepper-label{display:block;}}
+
+/* combobox */
+.combobox{position:relative;}
+.combobox-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border-strong);border-radius:10px;max-height:230px;overflow-y:auto;box-shadow:0 8px 24px rgba(15,23,42,.12);z-index:50;}
+.combobox-item{padding:9px 12px;font-size:13px;display:flex;justify-content:space-between;gap:8px;cursor:pointer;}
+.combobox-item:hover{background:var(--primary-light);}
+.combobox-sub{color:var(--text-faint);font-size:11.5px;white-space:nowrap;}
+.combobox-empty{padding:10px 12px;font-size:12.5px;color:var(--text-faint);}
+
+/* option cards (tipo mandante) */
+.option-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media (max-width:640px){.option-cards{grid-template-columns:1fr;}}
+.option-card{border:2px solid var(--border);border-radius:12px;padding:18px;text-align:left;background:#fff;}
+.option-card.selected{border-color:var(--primary);background:var(--primary-light);}
+.option-card h4{margin:0 0 4px;font-size:14.5px;}
+.option-card p{margin:0;font-size:12.5px;color:var(--text-muted);}
+
+/* client summary */
+.summary-box{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:14px;}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:13px;}
+@media (max-width:640px){.summary-grid{grid-template-columns:1fr;}}
+.summary-grid dt{color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px;}
+.summary-grid dd{margin:0;font-weight:600;}
+
+.rep-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.rep-row{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;background:#fff;}
+.rep-row.locked{background:#f8fafc;}
+.rep-row .rep-name{font-weight:600;flex:1;}
+.rep-row .rep-rut{color:var(--text-muted);font-size:12px;}
+.rep-row input[type=checkbox],.rep-row input[type=radio]{width:16px;height:16px;}
+
+.banner{border-radius:12px;padding:14px 16px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin:14px 0;}
+.banner svg{width:18px;height:18px;flex-shrink:0;margin-top:1px;}
+.banner-warning{background:var(--warning-light);color:#92400e;border:1px solid #fde68a;}
+.banner-info{background:var(--primary-light);color:#1e40af;border:1px solid #bfdbfe;}
+.banner-success{background:var(--success-light);color:#166534;border:1px solid #bbf7d0;}
+.banner-danger{background:var(--danger-light);color:#991b1b;border:1px solid #fecaca;}
+.banner-actions{display:flex;gap:8px;margin-top:10px;}
+
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary-dark);font-size:12px;font-weight:600;padding:5px 10px;border-radius:20px;}
+.chip button{background:none;border:none;color:inherit;padding:0;display:flex;}
+.chip button svg{width:12px;height:12px;}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+
+.checklist{border:1px solid var(--border-strong);border-radius:10px;max-height:230px;overflow-y:auto;}
+.checklist-item{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border);}
+.checklist-item:last-child{border-bottom:none;}
+.checklist-item:hover{background:#f8fafc;}
+.checklist-item .name{font-weight:600;flex:1;}
+.checklist-item .meta{color:var(--text-faint);font-size:11.5px;}
+
+.footer-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px;}
+
+/* document preview */
+.doc-sheet{background:#fff;border:1px solid var(--border-strong);border-radius:4px;padding:52px 56px;font-family:Georgia,'Times New Roman',serif;font-size:13.5px;line-height:1.7;color:#111827;box-shadow:0 2px 10px rgba(15,23,42,.06);}
+.doc-sheet h2{text-align:center;font-size:16px;letter-spacing:.04em;margin:0 0 22px;}
+.doc-sheet p{margin:0 0 16px;text-align:justify;}
+.doc-fecha{margin-bottom:22px !important;}
+.doc-signatures{display:flex;flex-wrap:wrap;gap:40px;margin-top:56px;justify-content:center;}
+.doc-signature{text-align:center;font-size:13px;min-width:220px;}
+.doc-signature .sigline{border-top:1px solid #111827;margin-bottom:6px;padding-top:6px;}
+
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.02em;}
+.pill-vigente{background:var(--success-light);color:#166534;}
+.pill-archivado{background:#f1f5f9;color:var(--text-muted);}
+
+.client-folder{border:1px solid var(--border);border-radius:var(--radius);padding:20px;background:#fff;margin-bottom:14px;}
+.client-folder-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;}
+.client-folder h3{margin:0;font-size:15.5px;}
+.poder-meta{font-size:12.5px;color:var(--text-muted);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;}
+.poder-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.versions-toggle{margin-top:12px;font-size:12.5px;color:var(--primary);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+.versions-panel{margin-top:10px;border-top:1px dashed var(--border);padding-top:12px;display:flex;flex-direction:column;gap:10px;}
+.version-row{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal{background:#fff;border-radius:16px;max-width:460px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+.modal h3{margin:0 0 10px;font-size:16px;}
+.modal p{font-size:13.5px;color:var(--text-muted);line-height:1.6;margin:0 0 18px;}
+.modal-actions{display:flex;flex-direction:column;gap:8px;}
+.modal-actions .btn{justify-content:center;width:100%;}
+
+.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:14px 18px;border-radius:12px;font-size:13.5px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:200;max-width:360px;}
+.toast svg{width:18px;height:18px;color:#4ade80;flex-shrink:0;}
+
+.search-bar{position:relative;max-width:360px;margin-bottom:18px;}
+.search-bar svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-faint);}
+.search-bar input{padding-left:36px;}
+
+.empty-state{text-align:center;padding:50px 20px;color:var(--text-muted);}
+.empty-state svg{width:40px;height:40px;margin-bottom:12px;color:var(--text-faint);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">SC</div>
+    <div class="sidebar-icons">
+      <button class="side-icon" data-view="home" title="Inicio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+        <span class="side-tooltip">Inicio</span>
+      </button>
+      <button class="side-icon" data-view="adp" title="Personas (ADP)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="side-tooltip">Personas (ADP)</span>
+      </button>
+      <button class="side-icon" data-view="gestion-documental" id="folder-icon" title="Gestión Documental">
+        <span class="side-pulse" id="folder-pulse"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span class="side-badge">NUEVO</span>
+        <span class="side-tooltip">Gestión Documental</span>
+      </button>
+      <button class="side-icon" data-view="remuneraciones" title="Remuneraciones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="side-tooltip">Remuneraciones</span>
+      </button>
+      <button class="side-icon" data-view="reportes" title="Reportes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="side-tooltip">Reportes</span>
+      </button>
+    </div>
+    <div class="sidebar-icons bottom">
+      <button class="side-icon" data-view="config" title="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="side-tooltip">Configuración</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="user-chip">
+        <div class="user-avatar">CC</div>
+        <span>Usuario Demo · Sur Consulting</span>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+/* ============================= DATA ============================= */
+
+const COMUNAS_POR_REGION = {
+"Arica y Parinacota": ["Arica","Camarones","Putre","General Lagos"],
+"Tarapacá": ["Iquique","Alto Hospicio","Pozo Almonte","Camiña","Colchane","Huara","Pica"],
+"Antofagasta": ["Antofagasta","Mejillones","Sierra Gorda","Taltal","Calama","Ollagüe","San Pedro de Atacama","Tocopilla","María Elena"],
+"Atacama": ["Copiapó","Caldera","Tierra Amarilla","Chañaral","Diego de Almagro","Vallenar","Alto del Carmen","Freirina","Huasco"],
+"Coquimbo": ["La Serena","Coquimbo","Andacollo","La Higuera","Paihuano","Vicuña","Illapel","Canela","Los Vilos","Salamanca","Ovalle","Combarbalá","Monte Patria","Punitaqui","Río Hurtado"],
+"Valparaíso": ["Valparaíso","Casablanca","Concón","Juan Fernández","Puchuncaví","Quintero","Viña del Mar","Isla de Pascua","Los Andes","Calle Larga","Rinconada","San Esteban","La Ligua","Cabildo","Papudo","Petorca","Zapallar","Quillota","La Calera","Hijuelas","La Cruz","Nogales","San Antonio","Algarrobo","Cartagena","El Quisco","El Tabo","Santo Domingo","San Felipe","Catemu","Llaillay","Panquehue","Putaendo","Santa María","Quilpué","Limache","Olmué","Villa Alemana"],
+"Metropolitana de Santiago": ["Santiago","Cerrillos","Cerro Navia","Conchalí","El Bosque","Estación Central","Huechuraba","Independencia","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maipú","Ñuñoa","Pedro Aguirre Cerda","Peñalolén","Providencia","Pudahuel","Quilicura","Quinta Normal","Recoleta","Renca","San Joaquín","San Miguel","San Ramón","Vitacura","Puente Alto","Pirque","San José de Maipo","Colina","Lampa","Til Til","San Bernardo","Buin","Calera de Tango","Paine","Melipilla","Alhué","Curacaví","María Pinto","San Pedro","Talagante","El Monte","Isla de Maipo","Padre Hurtado","Peñaflor"],
+"Libertador Gral. Bernardo O'Higgins": ["Rancagua","Codegua","Coinco","Coltauco","Doñihue","Graneros","Las Cabras","Machalí","Malloa","Mostazal","Olivar","Peumo","Pichidegua","Quinta de Tilcoco","Rengo","Requínoa","San Vicente","Pichilemu","La Estrella","Litueche","Marchihue","Navidad","Paredones","San Fernando","Chépica","Chimbarongo","Lolol","Nancagua","Palmilla","Peralillo","Placilla","Pumanque","Santa Cruz"],
+"Maule": ["Talca","Constitución","Curepto","Empedrado","Maule","Pelarco","Pencahue","Río Claro","San Clemente","San Rafael","Cauquenes","Chanco","Pelluhue","Curicó","Hualañé","Licantén","Molina","Rauco","Romeral","Sagrada Familia","Teno","Vichuquén","Linares","Colbún","Longaví","Parral","Retiro","San Javier","Villa Alegre","Yerbas Buenas"],
+"Ñuble": ["Chillán","Bulnes","Chillán Viejo","El Carmen","Pemuco","Pinto","Quillón","San Ignacio","Yungay","Cobquecura","Coelemu","Ninhue","Portezuelo","Quirihue","Ránquil","Treguaco","San Carlos","Coihueco","Ñiquén","San Fabián","San Nicolás"],
+"Biobío": ["Concepción","Coronel","Chiguayante","Florida","Hualqui","Lota","Penco","San Pedro de la Paz","Santa Juana","Talcahuano","Tomé","Hualpén","Lebu","Arauco","Cañete","Contulmo","Curanilahue","Los Álamos","Tirúa","Los Ángeles","Antuco","Cabrero","Laja","Mulchén","Nacimiento","Negrete","Quilaco","Quilleco","San Rosendo","Santa Bárbara","Tucapel","Yumbel","Alto Biobío"],
+"La Araucanía": ["Temuco","Carahue","Cunco","Curarrehue","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufquén","Pucón","Saavedra","Teodoro Schmidt","Toltén","Vilcún","Villarrica","Cholchol","Angol","Collipulli","Curacautín","Ercilla","Lonquimay","Los Sauces","Lumaco","Purén","Renaico","Traiguén","Victoria"],
+"Los Ríos": ["Valdivia","Corral","Lanco","Los Lagos","Máfil","Mariquina","Paillaco","Panguipulli","La Unión","Futrono","Lago Ranco","Río Bueno"],
+"Los Lagos": ["Puerto Montt","Calbuco","Cochamó","Fresia","Frutillar","Los Muermos","Llanquihue","Maullín","Puerto Varas","Castro","Ancud","Chonchi","Curaco de Vélez","Dalcahue","Puqueldón","Queilén","Quellón","Quemchi","Quinchao","Osorno","Puerto Octay","Purranque","Puyehue","Río Negro","San Juan de la Costa","San Pablo","Chaitén","Futaleufú","Hualaihué","Palena"],
+"Aysén del Gral. Carlos Ibáñez del Campo": ["Coyhaique","Lago Verde","Aysén","Cisnes","Guaitecas","Cochrane","O'Higgins","Tortel","Chile Chico","Río Ibáñez"],
+"Magallanes y de la Antártica Chilena": ["Punta Arenas","Laguna Blanca","Río Verde","San Gregorio","Cabo de Hornos","Antártica","Porvenir","Primavera","Timaukel","Natales"]
+};
+
+const COMUNAS = [];
+Object.keys(COMUNAS_POR_REGION).forEach(region=>{
+  COMUNAS_POR_REGION[region].forEach(comuna=> COMUNAS.push({ comuna, region }));
+});
+
+const CLIENTES = [
+{
+  id:'linos', razonSocial:'COMERCIALIZADORA DE LINOS SpA', rut:'77.758.327-1',
+  giro:'Comercialización de productos textiles y afines',
+  domicilio:'José Alcalde Delano #10545, Depto. #401', comuna:'Lo Barnechea', ciudad:'Santiago', region:'Metropolitana de Santiago',
+  representantes:[{ id:'linos-r1', nombre:'Francisco José Ebel König', rut:'19.475.899-5', genero:'M' }],
+  formaActuacion:'unico', advertencia:null
+},
+{
+  id:'andes', razonSocial:'ANDES LOGISTICA SpA', rut:'76.000.000-0',
+  giro:'Servicios de logística y transporte de carga',
+  domicilio:'Av. Ejemplo 1234', comuna:'Renca', ciudad:'Santiago', region:'Metropolitana de Santiago',
+  representantes:[
+    { id:'andes-r1', nombre:'Representante Uno', rut:'11.111.111-1', genero:'M' },
+    { id:'andes-r2', nombre:'Representante Dos', rut:'22.222.222-2', genero:'F' }
+  ],
+  formaActuacion:'indistinta', advertencia:null
+},
+{
+  id:'conjunta', razonSocial:'EMPRESA EJEMPLO CONJUNTA SpA', rut:'77.000.000-0',
+  giro:'Servicios de asesoría y consultoría empresarial',
+  domicilio:'Av. Legal 456', comuna:'Providencia', ciudad:'Santiago', region:'Metropolitana de Santiago',
+  representantes:[
+    { id:'conjunta-r1', nombre:'Representante A', rut:'13.333.333-3', genero:'M' },
+    { id:'conjunta-r2', nombre:'Representante B', rut:'14.444.444-4', genero:'F' }
+  ],
+  formaActuacion:'conjunta', advertencia:null
+},
+{
+  id:'transportes-sur', razonSocial:'TRANSPORTES DEL SUR LTDA', rut:'78.222.111-9',
+  giro:'Transporte de carga por carretera',
+  domicilio:'Camino Longitudinal Sur Km 12', comuna:'San Bernardo', ciudad:'Santiago', region:'Metropolitana de Santiago',
+  representantes:[
+    { id:'ts-r1', nombre:'Representante Uno de Tres', rut:'15.555.555-5', genero:'M' },
+    { id:'ts-r2', nombre:'Representante Dos de Tres', rut:'16.666.666-6', genero:'F' },
+    { id:'ts-r3', nombre:'Representante Tres de Tres', rut:'17.777.777-7', genero:'M' }
+  ],
+  formaActuacion:'dos_de_n', minRequeridos:2, advertencia:null
+},
+{
+  id:'grupo-norte', razonSocial:'INVERSIONES GRUPO NORTE SpA', rut:'79.333.222-4',
+  giro:'Inversiones y gestión de activos',
+  domicilio:'Av. El Bosque Norte 500, Of. 1201', comuna:'Las Condes', ciudad:'Santiago', region:'Metropolitana de Santiago',
+  representantes:[
+    { id:'gn-a1', nombre:'Representante Grupo A Uno', rut:'18.888.888-8', genero:'M' },
+    { id:'gn-a2', nombre:'Representante Grupo A Dos', rut:'19.999.999-K', genero:'F' },
+    { id:'gn-b1', nombre:'Representante Grupo B Uno', rut:'20.111.222-3', genero:'M' }
+  ],
+  formaActuacion:'grupos',
+  gruposActuacion:[{ nombre:'Grupo A', repIds:['gn-a1','gn-a2'] }, { nombre:'Grupo B', repIds:['gn-b1'] }],
+  advertencia:null
+},
+{
+  id:'pendiente', razonSocial:'SOCIEDAD COMERCIAL PENDIENTE SpA', rut:'80.444.333-2',
+  giro:'Comercialización de insumos industriales',
+  domicilio:'Av. Independencia 890', comuna:'Independencia', ciudad:'Santiago', region:'Metropolitana de Santiago',
+  representantes:[
+    { id:'pend-r1', nombre:'Representante Condicional Uno', rut:'21.222.333-4', genero:'M' },
+    { id:'pend-r2', nombre:'Representante Condicional Dos', rut:'22.333.444-5', genero:'F' }
+  ],
+  formaActuacion:'especial',
+  advertencia:'Este cliente presenta facultades condicionadas y antecedentes de representación pendientes de validación notarial. Revisar la escritura vigente antes de emitir el Poder SII.'
+}
+];
+
+const MANDATARIOS = [
+  { id:'m1', nombre:'Nicolás Antonio Martínez Alvear', rut:'16.662.054-6', cargo:'Abogado / Gestión tributaria', area:'Legal', genero:'M' },
+  { id:'m2', nombre:'Víctor Contreras Antil', rut:'16.718.579-7', cargo:'Gestión administrativa', area:'Administración', genero:'M' },
+  { id:'m3', nombre:'Felipe Eduardo Espinosa Ibarra', rut:'20.451.866-1', cargo:'Gestión documental', area:'Gestión Documental', genero:'M' },
+  { id:'m4', nombre:'Brenda Scarlet Álvarez', rut:'20.379.630-7', cargo:'Administración', area:'Administración', genero:'F' },
+  { id:'m5', nombre:'Camila Alejandra Montoya', rut:'19.639.063-4', cargo:'Legal laboral / administración de personas', area:'Legal', genero:'F' }
+];
+
+const FORMA_ACTUACION_LABELS = {
+  unico:'Representante único', indistinta:'Cualquiera de los representantes puede actuar indistintamente',
+  conjunta:'Actuación conjunta de todos los representantes', dos_de_n:'Dos cualesquiera de los representantes',
+  grupos:'Actuación por grupos', especial:'Facultades especiales o condicionadas', incompleta:'Información incompleta o pendiente de validación'
+};
+
+const CURRENT_USER = 'Usuario Demo (Sur Consulting)';
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+/* ============================= UTILS ============================= */
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function normalize(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function donDona(g){ return g==='F' ? 'Doña' : 'Don'; }
+
+function buildPersonListText(people){
+  const items = people.map(p => `${donDona(p.genero)} ${p.nombre}, cédula nacional de identidad N° ${p.rut}`);
+  if(items.length===0) return '';
+  if(items.length===1) return items[0];
+  if(items.length===2) return `${items[0]}, y ${items[1]}`;
+  return `${items.slice(0,-1).join(', ')}, y ${items[items.length-1]}`;
+}
+
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+
+function fechaTextoFromISO(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-').map(Number);
+  return `${d} de ${MESES[m-1]} de ${y}`;
+}
+function fechaCortaFromISO(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-').map(Number);
+  return `${pad2(d)}-${pad2(m)}-${y}`;
+}
+
+/* ============================= STATE ============================= */
+
+let currentView = 'home';
+let wizardStep = 1;
+const TOTAL_STEPS = 6;
+
+let wizard = null; // reset via resetWizard()
+
+function resetWizard(prefillClientId){
+  wizard = {
+    ciudadFirma:'', fecha:'', tipoMandante:'', clienteId:'', repsSeleccionados:[], repsGrupo:{},
+    naturalPersonId:'', advertenciaAceptada:false, advertenciaRechazada:false, observaciones:'',
+    mandatariosSeleccionados:[], modoNuevaVersion:false
+  };
+  wizardStep = 1;
+  if(prefillClientId){
+    wizard.clienteId = prefillClientId;
+    wizard.modoNuevaVersion = true;
+    const c = getCliente(prefillClientId);
+    if(c){
+      wizard.tipoMandante = 'juridica';
+      autoSelectReps(c);
+    }
+  }
+}
+
+function getCliente(id){ return CLIENTES.find(c=>c.id===id); }
+function getMandatario(id){ return MANDATARIOS.find(m=>m.id===id); }
+function getRepresentante(cliente, repId){ return cliente.representantes.find(r=>r.id===repId); }
+
+function autoSelectReps(cliente){
+  if(cliente.formaActuacion === 'unico'){
+    wizard.repsSeleccionados = [cliente.representantes[0].id];
+  } else if(cliente.formaActuacion === 'conjunta'){
+    wizard.repsSeleccionados = cliente.representantes.map(r=>r.id);
+  } else {
+    wizard.repsSeleccionados = [];
+  }
+  wizard.repsGrupo = {};
+  wizard.advertenciaAceptada = false;
+  wizard.advertenciaRechazada = false;
+  wizard.observaciones = cliente.advertencia || '';
+}
+
+/* ===================== PODERES GENERADOS STORE ===================== */
+
+const STORAGE_KEY = 'gd_poderes_sii_v1';
+let poderesStore = {}; // { clienteId: [ {id,version,fechaISO,usuario,mandatarios:[{nombre,rut}],estado,pdfBase64,observaciones,eliminado,fileName} ] }
+
+function saveStore(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(poderesStore)); }catch(e){}
+}
+function loadStore(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ poderesStore = JSON.parse(raw); return true; }
+  }catch(e){}
+  return false;
+}
+
+function seedStore(){
+  const linos = getCliente('linos');
+  const v1Model = buildDocumentModel({
+    ciudadFirma:'Santiago', fecha:'2026-03-26', tipoMandante:'juridica', cliente:linos,
+    firmantes:[linos.representantes[0]], mandatarios:[getMandatario('m1'), getMandatario('m2')]
+  });
+  const v2Model = buildDocumentModel({
+    ciudadFirma:'Santiago', fecha:'2026-07-08', tipoMandante:'juridica', cliente:linos,
+    firmantes:[linos.representantes[0]], mandatarios:[getMandatario('m1'), getMandatario('m2'), getMandatario('m4')]
+  });
+  poderesStore = {
+    linos: [
+      {
+        id:uid(), version:1, fechaISO:'2026-03-26', usuario:'Usuario X', estado:'archivado',
+        mandatarios:[{nombre:'Nicolás Antonio Martínez Alvear',rut:'16.662.054-6'},{nombre:'Víctor Contreras Antil',rut:'16.718.579-7'}],
+        observaciones:'', eliminado:false,
+        pdfBase64: pdfBase64FromModel(v1Model),
+        fileName:'Poder_SII_COMERCIALIZADORA_DE_LINOS_SpA_v1.pdf'
+      },
+      {
+        id:uid(), version:2, fechaISO:'2026-07-08', usuario:'Camila Montoya', estado:'vigente',
+        mandatarios:[{nombre:'Nicolás Antonio Martínez Alvear',rut:'16.662.054-6'},{nombre:'Víctor Contreras Antil',rut:'16.718.579-7'},{nombre:'Brenda Scarlet Álvarez',rut:'20.379.630-7'}],
+        observaciones:'', eliminado:false,
+        pdfBase64: pdfBase64FromModel(v2Model),
+        fileName:'Poder_SII_COMERCIALIZADORA_DE_LINOS_SpA_v2.pdf'
+      }
+    ]
+  };
+  saveStore();
+}
+
+function vigenteDe(clienteId){
+  const versiones = (poderesStore[clienteId]||[]).filter(v=>!v.eliminado);
+  return versiones.find(v=>v.estado==='vigente') || null;
+}
+function archivadasDe(clienteId){
+  return (poderesStore[clienteId]||[]).filter(v=>!v.eliminado && v.estado!=='vigente').sort((a,b)=>b.version-a.version);
+}
+
+/* ============================= DOCUMENT MODEL ============================= */
+
+function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, personaNatural, firmantes, mandatarios }){
+  const year = fecha ? fecha.slice(0,4) : new Date().getFullYear();
+  const fechaTexto = fechaTextoFromISO(fecha);
+  const titulo = `PODER SII ${year}`;
+  const encabezado = `En ${ciudadFirma}, a ${fechaTexto}.`;
+
+  let parrafo1;
+  if(tipoMandante === 'natural'){
+    const p = personaNatural;
+    parrafo1 = `Comparece ${donDona(p.genero)} ${p.nombre}, cédula nacional de identidad N° ${p.rut}, con domicilio en ${cliente.domicilio}, comuna de ${cliente.comuna}, ${cliente.ciudad}, quien en adelante se denominará el "Mandante".`;
+  } else {
+    const compareientesText = buildPersonListText(firmantes);
+    parrafo1 = `Comparece ${compareientesText}, en representación de la sociedad ${cliente.razonSocial}, Rol Único Tributario N° ${cliente.rut}, con domicilio en ${cliente.domicilio}, comuna de ${cliente.comuna}, ${cliente.ciudad}, quien en adelante se denominará el "Mandante".`;
+  }
+
+  const mandatariosText = buildPersonListText(mandatarios);
+  const plural = mandatarios.length > 1;
+  const verbo = plural ? 'actuando cualquiera de ellos en forma individual e indistinta, representen' : 'represente';
+  const parrafo2 = `Por el presente instrumento, el Mandante confiere poder especial a ${mandatariosText}, para que, ${verbo} al Mandante ante el Servicio de Impuestos Internos y demás organismos públicos relacionados, con las facultades que se indican a continuación.`;
+
+  const sujeto = plural ? 'los mandatarios' : 'el mandatario';
+  const quedan = plural ? 'quedan' : 'queda';
+  const facultado = plural ? 'facultados' : 'facultado';
+  const parrafo3 = `En virtud del presente mandato, ${sujeto} ${quedan} ${facultado} para realizar, en nombre y representación del Mandante, todos los trámites necesarios ante el Servicio de Impuestos Internos, entre otros: inicio de actividades, término de giro, presentación y rectificación de declaraciones juradas, formularios y declaraciones de impuestos, solicitudes de modificación de datos, ampliaciones y modificaciones de giro, obtención y cambio de clave tributaria, suscripción de convenios de pago, solicitud de copias de giros y certificados de deudas fiscales, timbraje de documentos tributarios, y en general, todo trámite necesario o conveniente para el correcto cumplimiento de las obligaciones tributarias del Mandante.`;
+
+  const cierre = `Se confieren al mandatario o mandatarios individualizados todas las facultades necesarias para el correcto desempeño del presente mandato, el que no está sujeto a plazo ni condición.`;
+
+  const firmas = (tipoMandante === 'natural' ? [personaNatural] : firmantes).map(f => ({
+    nombre: f.nombre,
+    ppLine: tipoMandante === 'natural' ? null : `pp. ${cliente.razonSocial}`,
+    rutLine: tipoMandante === 'natural' ? f.rut : cliente.rut
+  }));
+
+  return { titulo, encabezado, parrafo1, parrafo2, parrafo3, cierre, firmas };
+}
+
+/* ============================= PDF GENERATION ============================= */
+
+let __pdfCanvasCtx = null;
+function pdfCtx(){
+  if(!__pdfCanvasCtx){
+    const c = document.createElement('canvas');
+    __pdfCanvasCtx = c.getContext('2d');
+  }
+  return __pdfCanvasCtx;
+}
+function textWidth(text, size, bold){
+  const ctx = pdfCtx();
+  ctx.font = `${bold?'bold ':''}${size}px Helvetica, Arial, sans-serif`;
+  return ctx.measureText(text).width;
+}
+function wrapText(text, maxWidth, size, bold){
+  const words = text.split(' ');
+  const lines = [];
+  let cur = '';
+  words.forEach(w=>{
+    const test = cur ? cur+' '+w : w;
+    if(cur && textWidth(test,size,bold) > maxWidth){ lines.push(cur); cur = w; }
+    else{ cur = test; }
+  });
+  if(cur) lines.push(cur);
+  return lines;
+}
+function pdfEscape(s){
+  return s.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+}
+
+function buildPdfBinaryString(docModel){
+  const PAGE_W = 595.28, PAGE_H = 841.89;
+  const MARGIN_X = 64, MARGIN_TOP = 76, MARGIN_BOTTOM = 70;
+  const MAX_W = PAGE_W - MARGIN_X*2;
+
+  const blocks = [];
+  blocks.push({ text: docModel.titulo, size:15, bold:true, align:'center', spaceAfter:22 });
+  blocks.push({ text: docModel.encabezado, size:11, bold:false, align:'left', spaceAfter:18 });
+  [docModel.parrafo1, docModel.parrafo2, docModel.parrafo3, docModel.cierre].forEach(p=>{
+    blocks.push({ text:p, size:11, bold:false, align:'left', spaceAfter:16 });
+  });
+
+  const lines = [];
+  blocks.forEach(b=>{
+    const wrapped = wrapText(b.text, MAX_W, b.size, b.bold);
+    wrapped.forEach((w,i)=>{
+      lines.push({ text:w, size:b.size, bold:b.bold, align:b.align, spaceAfter: i===wrapped.length-1 ? b.spaceAfter : 4 });
+    });
+  });
+
+  // signatures block treated as a unit list appended after main body
+  const sigLineHeight = 15;
+  const sigBlockHeight = sigLineHeight*3 + 34;
+
+  const pages = [];
+  let page = [];
+  let y = PAGE_H - MARGIN_TOP;
+  const lineHeight = (size)=> size*1.55;
+
+  function newPage(){ pages.push(page); page = []; y = PAGE_H - MARGIN_TOP; }
+
+  lines.forEach(l=>{
+    const lh = lineHeight(l.size);
+    if(y - lh < MARGIN_BOTTOM){ newPage(); }
+    let x = MARGIN_X;
+    if(l.align === 'center'){
+      const w = textWidth(l.text, l.size, l.bold);
+      x = (PAGE_W - w)/2;
+    }
+    page.push({ text:l.text, x, y, size:l.size, bold:l.bold });
+    y -= lh + l.spaceAfter;
+  });
+
+  y -= 30;
+  docModel.firmas.forEach(f=>{
+    if(y - sigBlockHeight < MARGIN_BOTTOM){ newPage(); y -= 10; }
+    const startX = MARGIN_X;
+    page.push({ text:'_'.repeat(38), x:startX, y, size:11, bold:false });
+    y -= lineHeight(11);
+    page.push({ text:f.nombre, x:startX, y, size:11, bold:false });
+    y -= lineHeight(11);
+    if(f.ppLine){
+      page.push({ text:f.ppLine, x:startX, y, size:11, bold:false });
+      y -= lineHeight(11);
+    }
+    page.push({ text:f.rutLine, x:startX, y, size:11, bold:false });
+    y -= lineHeight(11) + 26;
+  });
+  if(page.length) pages.push(page);
+
+  return assemblePdf(pages, PAGE_W, PAGE_H);
+}
+
+function assemblePdf(pages, w, h){
+  const catalogIdx = 1, pagesIdx = 2;
+  let nextId = 3;
+  const pageIds = [];
+  const contentIds = [];
+  pages.forEach(()=>{ pageIds.push(nextId++); contentIds.push(nextId++); });
+  const fontRegularId = nextId++;
+  const fontBoldId = nextId++;
+
+  const kids = pageIds.map(id=>`${id} 0 R`).join(' ');
+  const header = `%PDF-1.4\n`;
+  const catalogObj = `${catalogIdx} 0 obj\n<< /Type /Catalog /Pages ${pagesIdx} 0 R >>\nendobj\n`;
+  const pagesObj = `${pagesIdx} 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pageIds.length} >>\nendobj\n`;
+
+  let out = header;
+  const offsetsMap = {};
+  function push(id, text){ offsetsMap[id] = out.length; out += text; }
+  push(catalogIdx, catalogObj);
+  push(pagesIdx, pagesObj);
+  pages.forEach((page, idx)=>{
+    let stream = '';
+    page.forEach(item=>{
+      const font = item.bold ? '/F2' : '/F1';
+      stream += `BT ${font} ${item.size} Tf 1 0 0 1 ${item.x.toFixed(2)} ${item.y.toFixed(2)} Tm (${pdfEscape(item.text)}) Tj ET\n`;
+    });
+    const pageObj = `${pageIds[idx]} 0 obj\n<< /Type /Page /Parent ${pagesIdx} 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> /Contents ${contentIds[idx]} 0 R >>\nendobj\n`;
+    const contentObj = `${contentIds[idx]} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}endstream\nendobj\n`;
+    push(pageIds[idx], pageObj);
+    push(contentIds[idx], contentObj);
+  });
+  const fontRegObj = `${fontRegularId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n`;
+  const fontBoldObj = `${fontBoldId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n`;
+  push(fontRegularId, fontRegObj);
+  push(fontBoldId, fontBoldObj);
+
+  const xrefStart = out.length;
+  const maxId = fontBoldId;
+  let xref = `xref\n0 ${maxId+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<=maxId;i++){
+    const off = offsetsMap[i] !== undefined ? offsetsMap[i] : 0;
+    xref += String(off).padStart(10,'0') + ' 00000 n \n';
+  }
+  const trailer = `trailer\n<< /Size ${maxId+1} /Root ${catalogIdx} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+  return out + xref + trailer;
+}
+
+function pdfBase64FromModel(docModel){
+  const binStr = buildPdfBinaryString(docModel);
+  return btoa(binStr);
+}
+function binaryStringToUint8(binStr){
+  const arr = new Uint8Array(binStr.length);
+  for(let i=0;i<binStr.length;i++) arr[i] = binStr.charCodeAt(i) & 0xFF;
+  return arr;
+}
+function blobFromBase64Pdf(base64){
+  const binStr = atob(base64);
+  return new Blob([binaryStringToUint8(binStr)], { type:'application/pdf' });
+}
+function triggerDownload(blob, fileName){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+function openPdfInNewTab(base64){
+  const blob = blobFromBase64Pdf(base64);
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(()=>URL.revokeObjectURL(url), 20000);
+}
+
+/* ============================= COMBOBOX COMPONENT ============================= */
+
+function makeCombobox(container, { items, getLabel, getSub, onSelect, placeholder, initialLabel }){
+  container.innerHTML = `<div class="combobox">
+    <input type="text" class="combobox-input" placeholder="${escapeHtml(placeholder||'Buscar...')}" autocomplete="off" value="${escapeHtml(initialLabel||'')}">
+    <div class="combobox-list hidden"></div>
+  </div>`;
+  const input = container.querySelector('.combobox-input');
+  const list = container.querySelector('.combobox-list');
+  function render(filter){
+    const f = normalize(filter||'');
+    const filtered = items.filter(it => normalize(getLabel(it) + ' ' + (getSub?getSub(it):'')).includes(f)).slice(0,60);
+    if(!filtered.length){
+      list.innerHTML = '<div class="combobox-empty">Sin resultados</div>';
+    } else {
+      list.innerHTML = filtered.map((it,i)=>`<div class="combobox-item" data-idx="${i}"><span>${escapeHtml(getLabel(it))}</span>${getSub?`<span class="combobox-sub">${escapeHtml(getSub(it))}</span>`:''}</div>`).join('');
+      Array.from(list.querySelectorAll('.combobox-item')).forEach((el,i)=>{
+        el.addEventListener('mousedown', e=>{
+          e.preventDefault();
+          input.value = getLabel(filtered[i]);
+          list.classList.add('hidden');
+          onSelect(filtered[i]);
+        });
+      });
+    }
+    list.classList.remove('hidden');
+  }
+  input.addEventListener('focus', ()=>render(input.value));
+  input.addEventListener('input', ()=>render(input.value));
+  input.addEventListener('blur', ()=>setTimeout(()=>list.classList.add('hidden'),150));
+  return { setValue:v=>input.value=v };
+}
+
+/* ============================= NAV / RENDER ============================= */
+
+const BREADCRUMBS = {
+  home: [['Inicio']],
+  adp: [['Personas (ADP)']],
+  remuneraciones: [['Remuneraciones']],
+  reportes: [['Reportes']],
+  config: [['Configuración']],
+  'gestion-documental': [['Gestión Documental']],
+  'poderes-sii': [['Gestión Documental','gestion-documental'],['Poderes SII']],
+  'generar-poder': [['Gestión Documental','gestion-documental'],['Poderes SII','poderes-sii'],['Generar Poder SII']],
+  'poderes-generados': [['Gestión Documental','gestion-documental'],['Poderes SII','poderes-sii'],['Poderes Generados']]
+};
+
+function renderBreadcrumb(viewKey){
+  const bc = document.getElementById('breadcrumb');
+  const trail = BREADCRUMBS[viewKey] || [['Inicio']];
+  bc.innerHTML = trail.map((seg,i)=>{
+    const isLast = i===trail.length-1;
+    const label = seg[0], nav = seg[1];
+    if(isLast) return `<b>${escapeHtml(label)}</b>`;
+    return `<span class="crumb-link" data-nav="${nav}">${escapeHtml(label)}</span><span>/</span>`;
+  }).join(' ');
+  Array.from(bc.querySelectorAll('[data-nav]')).forEach(el=>{
+    el.addEventListener('click', ()=> showView(el.dataset.nav));
+  });
+}
+
+function setActiveSidebar(view){
+  Array.from(document.querySelectorAll('.side-icon')).forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.view === view || (view.startsWith('poderes') || view==='generar-poder') && btn.dataset.view==='gestion-documental');
+  });
+}
+
+function showView(view, opts){
+  currentView = view;
+  setActiveSidebar(view);
+  renderBreadcrumb(view === 'generar-poder' ? 'generar-poder' : view);
+  const el = document.getElementById('content');
+  if(view==='home') el.innerHTML = renderHome();
+  else if(view==='adp') el.innerHTML = renderPlaceholder('Personas (ADP)','Este módulo corresponde a la plataforma actual y no forma parte de este prototipo.');
+  else if(view==='remuneraciones') el.innerHTML = renderPlaceholder('Remuneraciones','Módulo existente de la plataforma. No forma parte de este prototipo.');
+  else if(view==='reportes') el.innerHTML = renderPlaceholder('Reportes','Módulo existente de la plataforma. No forma parte de este prototipo.');
+  else if(view==='config') el.innerHTML = renderPlaceholder('Configuración','Módulo existente de la plataforma. No forma parte de este prototipo.');
+  else if(view==='gestion-documental') el.innerHTML = renderGestionDocumental();
+  else if(view==='poderes-sii') el.innerHTML = renderPoderesSiiHome();
+  else if(view==='generar-poder'){ if(!opts || !opts.keepWizard) resetWizard(opts && opts.prefillClientId); renderWizard(); }
+  else if(view==='poderes-generados') el.innerHTML = renderPoderesGenerados();
+  window.scrollTo(0,0);
+}
+
+function iconSvg(name){
+  const icons = {
+    folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+    archive:'<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
+    fileText:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+    plusCircle:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    search:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+    trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+    refresh:'<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icons[name]||''}</svg>`;
+}
+
+function renderPlaceholder(title, msg){
+  return `<h1 class="page-title">${title}</h1><div class="card"><div class="empty-state">${iconSvg('info')}<p>${msg}</p></div></div>`;
+}
+
+function renderHome(){
+  return `
+  <h1 class="page-title">Bienvenido, Usuario Demo</h1>
+  <p class="page-subtitle">Plataforma de Personas · Sur Consulting</p>
+  <div class="card" style="border-color:var(--primary);background:var(--primary-light);">
+    <div style="display:flex;gap:16px;align-items:flex-start;">
+      <div class="icon-wrap" style="background:#fff;color:var(--primary-dark);flex-shrink:0;">${iconSvg('folder')}</div>
+      <div>
+        <h3 style="margin:0 0 6px;font-size:15px;">Nuevo módulo disponible: Gestión Documental</h3>
+        <p style="margin:0 0 14px;font-size:13.5px;color:#1e3a8a;">Prototipo de presentación. Haz clic en el ícono de carpeta de la barra lateral (justo debajo de Personas) para explorar la generación automática de Poderes SII.</p>
+        <button class="btn btn-primary" onclick="showView('gestion-documental')">${iconSvg('folder')} Ir a Gestión Documental</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderGestionDocumental(){
+  return `
+  <h1 class="page-title">Gestión Documental</h1>
+  <p class="page-subtitle">Módulo para la administración de documentos y poderes de representación.</p>
+  <div class="big-cards">
+    <button class="big-card" onclick="showView('poderes-sii')">
+      <div class="icon-wrap">${iconSvg('fileText')}</div>
+      <h3>Poderes SII</h3>
+      <p>Generación y administración de Poderes SII a partir de la información de clientes y mandatarios de Sur Consulting.</p>
+    </button>
+  </div>`;
+}
+
+function renderPoderesSiiHome(){
+  return `
+  <h1 class="page-title">Poderes SII</h1>
+  <p class="page-subtitle">Genera un nuevo Poder SII o revisa los poderes ya generados por cliente.</p>
+  <div class="big-cards">
+    <button class="big-card" onclick="showView('generar-poder')">
+      <div class="icon-wrap">${iconSvg('plusCircle')}</div>
+      <h3>Generar nuevo Poder SII</h3>
+      <p>Completa un formulario guiado, revisa la vista previa y genera el PDF del poder.</p>
+    </button>
+    <button class="big-card" onclick="showView('poderes-generados')">
+      <div class="icon-wrap">${iconSvg('archive')}</div>
+      <h3>Ver Poderes Generados</h3>
+      <p>Consulta, descarga o elimina los poderes ya generados, ordenados por cliente.</p>
+    </button>
+  </div>`;
+}
+
+/* ============================= WIZARD ============================= */
+
+const STEP_LABELS = ['Documento','Mandante','Cliente','Representantes','Mandatarios','Vista previa'];
+const STEP_ICONS = ['fileText','info','search','check','fileText','eye'];
+
+function renderWizard(){
+  const el = document.getElementById('content');
+  el.innerHTML = `
+  <h1 class="page-title">Generar Poder SII</h1>
+  <p class="page-subtitle">${wizard.modoNuevaVersion? 'Generando nueva versión para un cliente existente.' : 'Completa los pasos para generar el documento.'}</p>
+  <div class="stepper" id="stepper"></div>
+  <div class="card" id="wizard-step-container"></div>
+  <div class="footer-nav">
+    <button class="btn btn-ghost" id="wizard-cancel">Cancelar</button>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary hidden" id="wizard-prev">Anterior</button>
+      <button class="btn btn-primary" id="wizard-next">Continuar</button>
+    </div>
+  </div>`;
+  document.getElementById('wizard-cancel').addEventListener('click', ()=> showView('poderes-sii'));
+  document.getElementById('wizard-prev').addEventListener('click', ()=>{ wizardStep--; renderWizardStep(); });
+  document.getElementById('wizard-next').addEventListener('click', onWizardNext);
+  renderWizardStep();
+}
+
+function renderStepper(){
+  const c = document.getElementById('stepper');
+  c.innerHTML = STEP_LABELS.map((label,i)=>{
+    const n = i+1;
+    const cls = n < wizardStep ? 'done' : (n===wizardStep ? 'active':'');
+    const inner = n < wizardStep ? iconSvg('check') : `<span>${n}</span>`;
+    return `<div class="stepper-item ${cls}">
+      <div class="stepper-circle">${n < wizardStep ? iconSvg('check') : n}</div>
+      <div class="stepper-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function fieldWrap(id, label, innerHtml, hint){
+  return `<div class="field" id="field-${id}">
+    <label class="field-label">${label}</label>
+    ${innerHtml}
+    ${hint? `<div class="field-hint">${hint}</div>`:''}
+    <div class="field-error">Este campo es obligatorio.</div>
+  </div>`;
+}
+
+function markInvalid(id, invalid){
+  const f = document.getElementById('field-'+id);
+  if(f) f.classList.toggle('invalid', !!invalid);
+}
+
+function renderWizardStep(){
+  renderStepper();
+  document.getElementById('wizard-prev').classList.toggle('hidden', wizardStep===1);
+  document.getElementById('wizard-next').textContent = wizardStep===TOTAL_STEPS ? 'Finalizar' : 'Continuar';
+  const container = document.getElementById('wizard-step-container');
+  if(wizardStep===1) container.innerHTML = stepDocumento();
+  else if(wizardStep===2) container.innerHTML = stepMandante();
+  else if(wizardStep===3) container.innerHTML = stepCliente();
+  else if(wizardStep===4) container.innerHTML = stepRepresentantes();
+  else if(wizardStep===5) container.innerHTML = stepMandatarios();
+  else if(wizardStep===6) container.innerHTML = stepPreview();
+  document.getElementById('wizard-next').classList.toggle('hidden', wizardStep===TOTAL_STEPS);
+  bindStepEvents();
+}
+
+function stepDocumento(){
+  const today = new Date();
+  return `
+  <h3 style="margin-top:0;">1. Datos del documento</h3>
+  <div class="grid-2">
+    ${fieldWrap('ciudad','Ciudad / comuna de firma *','<div id="ciudad-combobox"></div>','Buscador con el catálogo de comunas y ciudades de Chile.')}
+    ${fieldWrap('fecha','Fecha del documento *', `
+      <div class="row-3">
+        <select id="fecha-dia"><option value="">Día</option></select>
+        <select id="fecha-mes"><option value="">Mes</option></select>
+        <select id="fecha-anio"><option value="">Año</option></select>
+      </div>`, '')}
+  </div>
+  <div class="banner banner-info" id="fecha-preview" style="display:none;"></div>`;
+}
+
+function stepMandante(){
+  const t = wizard.tipoMandante;
+  return `
+  <h3 style="margin-top:0;">2. Tipo de mandante</h3>
+  <div class="option-cards" id="tipo-mandante-cards">
+    <button type="button" class="option-card ${t==='juridica'?'selected':''}" data-tipo="juridica">
+      <h4>Persona jurídica / empresa</h4>
+      <p>La empresa comparece representada legalmente por una o más personas naturales.</p>
+    </button>
+    <button type="button" class="option-card ${t==='natural'?'selected':''}" data-tipo="natural">
+      <h4>Persona natural</h4>
+      <p>Se selecciona un cliente y, desde sus representantes, se elige a la persona natural mandante.</p>
+    </button>
+  </div>
+  <div class="field-error" id="mandante-error" style="display:none;margin-top:8px;">Debes seleccionar un tipo de mandante.</div>`;
+}
+
+function stepCliente(){
+  return `
+  <h3 style="margin-top:0;">3. Selección de cliente</h3>
+  ${fieldWrap('cliente','Cliente (CRM / Centro de Comandos) *','<div id="cliente-combobox"></div>','Al seleccionar, se autocompletan los datos de la sociedad y sus representantes legales.')}
+  <div id="cliente-summary"></div>`;
+}
+
+function stepRepresentantes(){
+  const cliente = getCliente(wizard.clienteId);
+  if(!cliente) return `<div class="banner banner-warning">${iconSvg('alert')}<div>Selecciona primero un cliente en el paso anterior.</div></div>`;
+
+  if(wizard.tipoMandante === 'natural'){
+    return `
+    <h3 style="margin-top:0;">4. Persona natural mandante</h3>
+    <p class="field-hint" style="margin-bottom:14px;">Selecciona, desde los representantes del cliente, a la persona natural que actuará como mandante.</p>
+    <div class="rep-list" id="natural-rep-list">
+      ${cliente.representantes.map(r=>`
+        <label class="rep-row">
+          <input type="radio" name="natural-rep" value="${r.id}" ${wizard.naturalPersonId===r.id?'checked':''}>
+          <span class="rep-name">${donDona(r.genero)} ${escapeHtml(r.nombre)}</span>
+          <span class="rep-rut">${r.rut}</span>
+        </label>`).join('')}
+    </div>
+    <div class="field-error" id="natural-error" style="display:none;margin-top:8px;">Debes seleccionar una persona natural mandante.</div>
+    ${observacionesField()}
+    `;
+  }
+
+  return `
+  <h3 style="margin-top:0;">4. Forma de actuación de representantes legales</h3>
+  <div class="summary-box" style="margin-top:0;margin-bottom:14px;">
+    <dt style="font-size:11px;color:var(--text-faint);text-transform:uppercase;">Forma de actuación registrada</dt>
+    <dd style="font-weight:600;">${FORMA_ACTUACION_LABELS[cliente.formaActuacion]}</dd>
+  </div>
+  <div id="rep-selection-area"></div>
+  ${observacionesField()}
+  `;
+}
+
+function observacionesField(){
+  return `<div class="field" style="margin-top:18px;">
+    <label class="field-label">Observaciones legales (interno, opcional)</label>
+    <textarea id="observaciones-input" placeholder="Notas internas sobre poderes vigentes, limitaciones o revisiones pendientes. No se imprime en el documento.">${escapeHtml(wizard.observaciones||'')}</textarea>
+    <div class="field-hint">Este campo es solo para trazabilidad interna. No aparece en el Poder SII.</div>
+  </div>`;
+}
+
+function repSelectionAreaHtml(cliente){
+  const forma = cliente.formaActuacion;
+  if(forma==='especial' || forma==='incompleta'){
+    if(!wizard.advertenciaAceptada && !wizard.advertenciaRechazada){
+      return `<div class="banner banner-warning">
+        ${iconSvg('alert')}
+        <div>
+          <div><b>Este cliente tiene una forma de actuación especial o pendiente de validación.</b> Revisar antecedentes antes de generar el poder.</div>
+          <div class="banner-actions">
+            <button class="btn btn-primary btn-sm" id="btn-entender">Entiendo y continuar</button>
+            <button class="btn btn-danger btn-sm" id="btn-rechazar">Rechazo</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    if(wizard.advertenciaRechazada){
+      return `<div class="banner banner-danger">${iconSvg('x')}<div>Selección rechazada. Vuelve al paso anterior y elige otro cliente, o revisa los antecedentes antes de continuar.
+        <div class="banner-actions"><button class="btn btn-secondary btn-sm" id="btn-revert-advertencia">Revisar de nuevo</button></div>
+      </div></div>`;
+    }
+    return `<div class="banner banner-info">${iconSvg('info')}<div>Advertencia aceptada. Selecciona libremente uno o más representantes.</div></div>` + freeMultiSelect(cliente);
+  }
+  if(forma==='unico'){
+    const r = cliente.representantes[0];
+    return `<div class="rep-list"><div class="rep-row locked">
+      <input type="checkbox" checked disabled>
+      <span class="rep-name">${donDona(r.genero)} ${escapeHtml(r.nombre)}</span>
+      <span class="rep-rut">${r.rut}</span>
+    </div></div><div class="field-hint" style="margin-top:8px;">Representante único: seleccionado automáticamente.</div>`;
+  }
+  if(forma==='indistinta'){
+    return freeMultiSelect(cliente) + `<div class="field-hint" style="margin-top:8px;">Cualquiera puede actuar indistintamente. Selecciona uno o más.</div>`;
+  }
+  if(forma==='conjunta'){
+    return `<div class="rep-list">${cliente.representantes.map(r=>`
+      <div class="rep-row locked">
+        <input type="checkbox" checked disabled>
+        <span class="rep-name">${donDona(r.genero)} ${escapeHtml(r.nombre)}</span>
+        <span class="rep-rut">${r.rut}</span>
+      </div>`).join('')}</div>
+      <div class="field-hint" style="margin-top:8px;">Actuación conjunta: se requiere la firma de todos los representantes.</div>`;
+  }
+  if(forma==='dos_de_n'){
+    return freeMultiSelect(cliente, cliente.minRequeridos||2) + `<div class="field-hint" style="margin-top:8px;">Selecciona exactamente ${cliente.minRequeridos||2} representantes.</div>`;
+  }
+  if(forma==='grupos'){
+    return cliente.gruposActuacion.map(g=>`
+      <div style="margin-bottom:14px;">
+        <div class="field-label" style="margin-bottom:8px;">${escapeHtml(g.nombre)} (seleccione 1)</div>
+        <div class="rep-list">
+          ${g.repIds.map(id=>{
+            const r = getRepresentante(cliente, id);
+            const checked = wizard.repsGrupo[g.nombre]===id;
+            return `<label class="rep-row">
+              <input type="radio" name="grupo-${g.nombre.replace(/\\s+/g,'')}" value="${id}" data-grupo="${escapeHtml(g.nombre)}" ${checked?'checked':''}>
+              <span class="rep-name">${donDona(r.genero)} ${escapeHtml(r.nombre)}</span>
+              <span class="rep-rut">${r.rut}</span>
+            </label>`;
+          }).join('')}
+        </div>
+      </div>`).join('');
+  }
+  return '';
+}
+
+function freeMultiSelect(cliente, exactCount){
+  return `<div class="rep-list" id="free-rep-list">
+    ${cliente.representantes.map(r=>{
+      const checked = wizard.repsSeleccionados.includes(r.id);
+      return `<label class="rep-row">
+        <input type="checkbox" class="free-rep-checkbox" value="${r.id}" ${checked?'checked':''} ${exactCount?`data-exact="${exactCount}"`:''}>
+        <span class="rep-name">${donDona(r.genero)} ${escapeHtml(r.nombre)}</span>
+        <span class="rep-rut">${r.rut}</span>
+      </label>`;
+    }).join('')}
+  </div>`;
+}
+
+function stepMandatarios(){
+  return `
+  <h3 style="margin-top:0;">5. Mandatarios de Sur Consulting</h3>
+  ${fieldWrap('mandatarios','Selecciona uno o varios mandatarios *', `
+    <div class="checklist" id="mandatarios-checklist">
+      ${MANDATARIOS.map(m=>`
+        <label class="checklist-item">
+          <input type="checkbox" class="mandatario-checkbox" value="${m.id}" ${wizard.mandatariosSeleccionados.includes(m.id)?'checked':''}>
+          <span class="name">${escapeHtml(m.nombre)}</span>
+          <span class="meta">${m.rut} · ${escapeHtml(m.cargo)}</span>
+        </label>`).join('')}
+    </div>`, 'El cargo interno es solo referencial y no aparece en el documento final.')}
+  <div class="chip-row" id="mandatarios-chips"></div>
+  <div class="summary-box">
+    <div class="field-label" style="margin-bottom:6px;">Redacción automática del poder</div>
+    <div id="mandatarios-text-preview" style="font-size:13px;color:var(--text-muted);"></div>
+  </div>`;
+}
+
+function stepPreview(){
+  const model = currentDocumentModel();
+  if(!model){
+    return `<div class="banner banner-warning">${iconSvg('alert')}<div>Faltan datos obligatorios. Vuelve a los pasos anteriores para completarlos.</div></div>
+    <div class="footer-nav"><div></div><button class="btn btn-secondary" onclick="wizardStep=1;renderWizardStep();">Volver al inicio del formulario</button></div>`;
+  }
+  return `
+  <h3 style="margin-top:0;">Revisión del Poder SII</h3>
+  <p class="field-hint" style="margin-bottom:16px;">Revisa el documento completo antes de generar el PDF final.</p>
+  <div class="doc-sheet">
+    <h2>${escapeHtml(model.titulo)}</h2>
+    <p class="doc-fecha">${escapeHtml(model.encabezado)}</p>
+    <p>${escapeHtml(model.parrafo1)}</p>
+    <p>${escapeHtml(model.parrafo2)}</p>
+    <p>${escapeHtml(model.parrafo3)}</p>
+    <p>${escapeHtml(model.cierre)}</p>
+    <div class="doc-signatures">
+      ${model.firmas.map(f=>`
+        <div class="doc-signature">
+          <div class="sigline"></div>
+          <div>${escapeHtml(f.nombre)}</div>
+          ${f.ppLine? `<div>${escapeHtml(f.ppLine)}</div>`:''}
+          <div>${escapeHtml(f.rutLine)}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+  <div class="footer-nav">
+    <button class="btn btn-secondary" onclick="wizardStep=5;renderWizardStep();">Anterior</button>
+    <button class="btn btn-primary" id="btn-generar-pdf">${iconSvg('fileText')} Generar PDF</button>
+  </div>`;
+}
+
+function currentDocumentModel(){
+  if(!wizard.ciudadFirma || !wizard.fecha || !wizard.tipoMandante || !wizard.clienteId) return null;
+  const cliente = getCliente(wizard.clienteId);
+  if(!cliente) return null;
+  if(wizard.tipoMandante==='natural'){
+    if(!wizard.naturalPersonId) return null;
+    const persona = getRepresentante(cliente, wizard.naturalPersonId);
+    if(!persona) return null;
+    if(!wizard.mandatariosSeleccionados.length) return null;
+    return buildDocumentModel({
+      ciudadFirma: wizard.ciudadFirma, fecha: wizard.fecha, tipoMandante:'natural', cliente, personaNatural: persona,
+      mandatarios: wizard.mandatariosSeleccionados.map(getMandatario)
+    });
+  }
+  const firmantesIds = firmantesActuales(cliente);
+  if(!firmantesIds.length) return null;
+  if(!wizard.mandatariosSeleccionados.length) return null;
+  return buildDocumentModel({
+    ciudadFirma: wizard.ciudadFirma, fecha: wizard.fecha, tipoMandante:'juridica', cliente,
+    firmantes: firmantesIds.map(id=>getRepresentante(cliente,id)),
+    mandatarios: wizard.mandatariosSeleccionados.map(getMandatario)
+  });
+}
+
+function firmantesActuales(cliente){
+  if(cliente.formaActuacion==='grupos'){
+    const ids = Object.values(wizard.repsGrupo).filter(Boolean);
+    return cliente.gruposActuacion.every(g=>wizard.repsGrupo[g.nombre]) ? ids : [];
+  }
+  if((cliente.formaActuacion==='especial'||cliente.formaActuacion==='incompleta') && !wizard.advertenciaAceptada){
+    return [];
+  }
+  return wizard.repsSeleccionados;
+}
+
+/* ============================= WIZARD BINDINGS & VALIDATION ============================= */
+
+function bindStepEvents(){
+  if(wizardStep===1){
+    makeCombobox(document.getElementById('ciudad-combobox'), {
+      items: COMUNAS, getLabel: c=>c.comuna, getSub: c=>c.region,
+      placeholder:'Buscar comuna o ciudad...', initialLabel: wizard.ciudadFirma,
+      onSelect: c=>{ wizard.ciudadFirma = c.comuna; markInvalid('ciudad', false); updateFechaPreview(); }
+    });
+    const diaSel = document.getElementById('fecha-dia'), mesSel = document.getElementById('fecha-mes'), anioSel = document.getElementById('fecha-anio');
+    for(let d=1; d<=31; d++) diaSel.innerHTML += `<option value="${d}">${d}</option>`;
+    MESES.forEach((m,i)=> mesSel.innerHTML += `<option value="${i+1}">${m.charAt(0).toUpperCase()+m.slice(1)}</option>`);
+    const thisYear = new Date().getFullYear();
+    for(let y=thisYear-1; y<=thisYear+3; y++) anioSel.innerHTML += `<option value="${y}">${y}</option>`;
+    if(wizard.fecha){
+      const [y,m,d] = wizard.fecha.split('-').map(Number);
+      diaSel.value = d; mesSel.value = m; anioSel.value = y;
+    }
+    [diaSel,mesSel,anioSel].forEach(sel=> sel.addEventListener('change', ()=>{
+      if(diaSel.value && mesSel.value && anioSel.value){
+        wizard.fecha = `${anioSel.value}-${pad2(+mesSel.value)}-${pad2(+diaSel.value)}`;
+        markInvalid('fecha', false);
+      } else wizard.fecha = '';
+      updateFechaPreview();
+    }));
+    updateFechaPreview();
+  }
+  else if(wizardStep===2){
+    Array.from(document.querySelectorAll('#tipo-mandante-cards .option-card')).forEach(card=>{
+      card.addEventListener('click', ()=>{
+        wizard.tipoMandante = card.dataset.tipo;
+        Array.from(document.querySelectorAll('#tipo-mandante-cards .option-card')).forEach(c=>c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('mandante-error').style.display = 'none';
+      });
+    });
+  }
+  else if(wizardStep===3){
+    const box = document.getElementById('cliente-combobox');
+    const cliente0 = getCliente(wizard.clienteId);
+    makeCombobox(box, {
+      items: CLIENTES, getLabel: c=>c.razonSocial, getSub: c=>c.rut,
+      placeholder:'Buscar cliente por razón social o RUT...', initialLabel: cliente0? cliente0.razonSocial:'',
+      onSelect: c=>{
+        wizard.clienteId = c.id;
+        autoSelectReps(c);
+        markInvalid('cliente', false);
+        renderClienteSummary();
+      }
+    });
+    renderClienteSummary();
+  }
+  else if(wizardStep===4){
+    const cliente = getCliente(wizard.clienteId);
+    if(!cliente) return;
+    if(wizard.tipoMandante==='natural'){
+      Array.from(document.querySelectorAll('input[name="natural-rep"]')).forEach(r=>{
+        r.addEventListener('change', ()=>{ wizard.naturalPersonId = r.value; document.getElementById('natural-error').style.display='none'; });
+      });
+    } else {
+      const area = document.getElementById('rep-selection-area');
+      area.innerHTML = repSelectionAreaHtml(cliente);
+      bindRepSelectionEvents(cliente);
+    }
+    document.getElementById('observaciones-input').addEventListener('input', e=> wizard.observaciones = e.target.value);
+  }
+  else if(wizardStep===5){
+    updateMandatariosChipsAndText();
+    Array.from(document.querySelectorAll('.mandatario-checkbox')).forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        if(cb.checked) wizard.mandatariosSeleccionados.push(cb.value);
+        else wizard.mandatariosSeleccionados = wizard.mandatariosSeleccionados.filter(id=>id!==cb.value);
+        markInvalid('mandatarios', false);
+        updateMandatariosChipsAndText();
+      });
+    });
+  }
+  else if(wizardStep===6){
+    const btn = document.getElementById('btn-generar-pdf');
+    if(btn) btn.addEventListener('click', onGenerarPdfClick);
+  }
+}
+
+function bindRepSelectionEvents(cliente){
+  const entender = document.getElementById('btn-entender');
+  const rechazar = document.getElementById('btn-rechazar');
+  const revert = document.getElementById('btn-revert-advertencia');
+  if(entender) entender.addEventListener('click', ()=>{
+    wizard.advertenciaAceptada = true;
+    logInternalAudit(cliente, 'Advertencia de forma de actuación aceptada por el usuario.');
+    document.getElementById('rep-selection-area').innerHTML = repSelectionAreaHtml(cliente);
+    bindRepSelectionEvents(cliente);
+  });
+  if(rechazar) rechazar.addEventListener('click', ()=>{
+    wizard.advertenciaRechazada = true;
+    logInternalAudit(cliente, 'Advertencia de forma de actuación rechazada por el usuario.');
+    document.getElementById('rep-selection-area').innerHTML = repSelectionAreaHtml(cliente);
+    bindRepSelectionEvents(cliente);
+  });
+  if(revert) revert.addEventListener('click', ()=>{
+    wizard.advertenciaRechazada = false;
+    document.getElementById('rep-selection-area').innerHTML = repSelectionAreaHtml(cliente);
+    bindRepSelectionEvents(cliente);
+  });
+  Array.from(document.querySelectorAll('.free-rep-checkbox')).forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const exact = cb.dataset.exact ? parseInt(cb.dataset.exact,10) : null;
+      if(cb.checked){
+        if(exact && wizard.repsSeleccionados.length >= exact){
+          cb.checked = false; return;
+        }
+        wizard.repsSeleccionados.push(cb.value);
+      } else {
+        wizard.repsSeleccionados = wizard.repsSeleccionados.filter(id=>id!==cb.value);
+      }
+    });
+  });
+  Array.from(document.querySelectorAll('[data-grupo]')).forEach(r=>{
+    r.addEventListener('change', ()=>{ wizard.repsGrupo[r.dataset.grupo] = r.value; });
+  });
+}
+
+const internalAuditLog = [];
+function logInternalAudit(cliente, mensaje){
+  internalAuditLog.push({ ts:new Date().toISOString(), usuario:CURRENT_USER, cliente:cliente.razonSocial, mensaje });
+}
+
+function updateFechaPreview(){
+  const box = document.getElementById('fecha-preview');
+  if(!box) return;
+  if(wizard.ciudadFirma && wizard.fecha){
+    box.style.display='flex';
+    box.innerHTML = `${iconSvg('info')}<div>Se imprimirá como: <b>"En ${escapeHtml(wizard.ciudadFirma)}, a ${escapeHtml(fechaTextoFromISO(wizard.fecha))}."</b></div>`;
+  } else box.style.display='none';
+}
+
+function renderClienteSummary(){
+  const box = document.getElementById('cliente-summary');
+  if(!box) return;
+  const cliente = getCliente(wizard.clienteId);
+  if(!cliente){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="summary-box">
+    <dl class="summary-grid">
+      <div><dt>Razón social</dt><dd>${escapeHtml(cliente.razonSocial)}</dd></div>
+      <div><dt>RUT empresa</dt><dd>${cliente.rut}</dd></div>
+      <div><dt>Giro</dt><dd>${escapeHtml(cliente.giro)}</dd></div>
+      <div><dt>Domicilio</dt><dd>${escapeHtml(cliente.domicilio)}</dd></div>
+      <div><dt>Comuna</dt><dd>${escapeHtml(cliente.comuna)}</dd></div>
+      <div><dt>Ciudad / Región</dt><dd>${escapeHtml(cliente.ciudad)} · ${escapeHtml(cliente.region)}</dd></div>
+    </dl>
+    <div class="rep-list" style="margin-top:14px;">
+      ${cliente.representantes.map(r=>`<div class="rep-row locked">
+        <span class="rep-name">${donDona(r.genero)} ${escapeHtml(r.nombre)}</span>
+        <span class="rep-rut">${r.rut}</span>
+      </div>`).join('')}
+    </div>
+    <div class="field-hint" style="margin-top:8px;">Forma de actuación: <b>${FORMA_ACTUACION_LABELS[cliente.formaActuacion]}</b></div>
+  </div>
+  ${duplicateNoticeHtml(cliente)}`;
+}
+
+function duplicateNoticeHtml(cliente){
+  const vigente = vigenteDe(cliente.id);
+  if(!vigente || wizard.modoNuevaVersion) return '';
+  return `<div class="banner banner-info">${iconSvg('info')}<div>Ya existe un Poder SII vigente para este cliente (v${vigente.version}, ${fechaCortaFromISO(vigente.fechaISO)}, creado por ${escapeHtml(vigente.usuario)}). Podrás revisarlo o generar una nueva versión al finalizar.</div></div>`;
+}
+
+function updateMandatariosChipsAndText(){
+  const chipsBox = document.getElementById('mandatarios-chips');
+  const textBox = document.getElementById('mandatarios-text-preview');
+  const seleccionados = wizard.mandatariosSeleccionados.map(getMandatario);
+  chipsBox.innerHTML = seleccionados.map(m=>`<span class="chip">${escapeHtml(m.nombre)} <button data-remove="${m.id}">${iconSvg('x')}</button></span>`).join('');
+  Array.from(chipsBox.querySelectorAll('[data-remove]')).forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.remove;
+      wizard.mandatariosSeleccionados = wizard.mandatariosSeleccionados.filter(x=>x!==id);
+      const cb = document.querySelector(`.mandatario-checkbox[value="${id}"]`);
+      if(cb) cb.checked = false;
+      updateMandatariosChipsAndText();
+    });
+  });
+  textBox.textContent = seleccionados.length ? buildPersonListText(seleccionados) : 'Selecciona al menos un mandatario para ver la redacción automática.';
+}
+
+function validateCurrentStep(){
+  if(wizardStep===1){
+    let ok = true;
+    if(!wizard.ciudadFirma){ markInvalid('ciudad', true); ok=false; }
+    if(!wizard.fecha){ markInvalid('fecha', true); ok=false; }
+    return ok;
+  }
+  if(wizardStep===2){
+    if(!wizard.tipoMandante){ document.getElementById('mandante-error').style.display='block'; return false; }
+    return true;
+  }
+  if(wizardStep===3){
+    if(!wizard.clienteId){ markInvalid('cliente', true); return false; }
+    return true;
+  }
+  if(wizardStep===4){
+    const cliente = getCliente(wizard.clienteId);
+    if(!cliente) return false;
+    if(wizard.tipoMandante==='natural'){
+      if(!wizard.naturalPersonId){ document.getElementById('natural-error').style.display='block'; return false; }
+      return true;
+    }
+    if(wizard.advertenciaRechazada){
+      showToast('Debes resolver la advertencia (Entiendo y continuar) o seleccionar otro cliente.', true);
+      return false;
+    }
+    const firmantes = firmantesActuales(cliente);
+    if(!firmantes.length){
+      showToast('Debes seleccionar al menos un representante legal.', true);
+      return false;
+    }
+    if(cliente.formaActuacion==='dos_de_n' && firmantes.length !== (cliente.minRequeridos||2)){
+      showToast(`Debes seleccionar exactamente ${cliente.minRequeridos||2} representantes.`, true);
+      return false;
+    }
+    if(cliente.formaActuacion==='conjunta' && firmantes.length !== cliente.representantes.length){
+      showToast('La actuación conjunta requiere a todos los representantes.', true);
+      return false;
+    }
+    return true;
+  }
+  if(wizardStep===5){
+    if(!wizard.mandatariosSeleccionados.length){ markInvalid('mandatarios', true); return false; }
+    return true;
+  }
+  return true;
+}
+
+function onWizardNext(){
+  if(!validateCurrentStep()) return;
+  if(wizardStep < TOTAL_STEPS){ wizardStep++; renderWizardStep(); }
+}
+
+/* ============================= PDF GENERATION FLOW ============================= */
+
+function onGenerarPdfClick(){
+  const model = currentDocumentModel();
+  if(!model){ showToast('Faltan datos esenciales. No es posible generar el PDF.', true); return; }
+  const cliente = getCliente(wizard.clienteId);
+  const vigente = vigenteDe(cliente.id);
+  if(vigente && !wizard.modoNuevaVersion){
+    openDuplicateModal(cliente, vigente, model);
+  } else {
+    finalizarGeneracion(cliente, model);
+  }
+}
+
+function openDuplicateModal(cliente, vigente, model){
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-overlay">
+    <div class="modal">
+      <h3>Ya existe un Poder SII para este cliente</h3>
+      <p>Ya existe un Poder SII generado para <b>${escapeHtml(cliente.razonSocial)}</b> con fecha ${fechaCortaFromISO(vigente.fechaISO)}, creado por ${escapeHtml(vigente.usuario)}. Puedes cancelar, ver el poder anterior o generar una nueva versión.</p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="modal-nueva-version">Generar nueva versión</button>
+        <button class="btn btn-secondary" id="modal-ver-anterior">Ver poder anterior</button>
+        <button class="btn btn-ghost" id="modal-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modal-cancelar').addEventListener('click', closeModal);
+  document.getElementById('modal-ver-anterior').addEventListener('click', ()=>{ openPdfInNewTab(vigente.pdfBase64); closeModal(); });
+  document.getElementById('modal-nueva-version').addEventListener('click', ()=>{ closeModal(); finalizarGeneracion(cliente, model); });
+}
+
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+function finalizarGeneracion(cliente, model){
+  const base64 = pdfBase64FromModel(model);
+  const versiones = poderesStore[cliente.id] || [];
+  versiones.forEach(v=> v.estado = 'archivado');
+  const nextVersion = versiones.length ? Math.max(...versiones.map(v=>v.version))+1 : 1;
+  const fileName = `Poder_SII_${cliente.razonSocial.replace(/[^a-zA-Z0-9]+/g,'_')}_v${nextVersion}.pdf`;
+  const record = {
+    id: uid(), version: nextVersion, fechaISO: wizard.fecha, usuario: CURRENT_USER, estado:'vigente',
+    mandatarios: wizard.mandatariosSeleccionados.map(getMandatario).map(m=>({nombre:m.nombre, rut:m.rut})),
+    observaciones: wizard.observaciones || '', eliminado:false, pdfBase64: base64, fileName
+  };
+  poderesStore[cliente.id] = [...versiones, record];
+  saveStore();
+  triggerDownload(blobFromBase64Pdf(base64), fileName);
+  showToast(`Poder SII generado y descargado (${fileName}).`);
+  showView('poderes-generados');
+}
+
+/* ============================= PODERES GENERADOS VIEW ============================= */
+
+let poderesSearchTerm = '';
+
+function renderPoderesGenerados(){
+  const clientesConPoder = CLIENTES.filter(c => (poderesStore[c.id]||[]).some(v=>!v.eliminado));
+  const filtered = clientesConPoder.filter(c => normalize(c.razonSocial).includes(normalize(poderesSearchTerm)));
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div><h1 class="page-title">Poderes Generados</h1><p class="page-subtitle">Poderes SII generados, ordenados por cliente.</p></div>
+    <button class="btn btn-ghost btn-sm" onclick="resetDemoData()">${iconSvg('refresh')} Restablecer datos de ejemplo</button>
+  </div>
+  <div class="search-bar">
+    ${iconSvg('search')}
+    <input type="text" id="poderes-search" placeholder="Buscar cliente..." value="${escapeHtml(poderesSearchTerm)}">
+  </div>
+  <div id="poderes-list">${filtered.length ? filtered.map(clienteFolderHtml).join('') : `<div class="card"><div class="empty-state">${iconSvg('archive')}<p>No hay poderes generados que coincidan con la búsqueda.</p></div></div>`}</div>
+  `;
+}
+
+function clienteFolderHtml(cliente){
+  const vigente = vigenteDe(cliente.id);
+  const archivadas = archivadasDe(cliente.id);
+  return `<div class="client-folder">
+    <div class="client-folder-head">
+      <div>
+        <h3>${escapeHtml(cliente.razonSocial)}</h3>
+        <div class="poder-meta">
+          <span>RUT: ${cliente.rut}</span>
+          ${vigente ? `<span class="pill pill-vigente">Vigente</span> <span>Versión ${vigente.version}</span> <span>Fecha: ${fechaCortaFromISO(vigente.fechaISO)}</span> <span>Creado por: ${escapeHtml(vigente.usuario)}</span>` : `<span>Sin poder vigente</span>`}
+        </div>
+      </div>
+    </div>
+    ${vigente ? `<div class="field-hint" style="margin-top:8px;">Mandatarios incluidos: ${vigente.mandatarios.map(m=>escapeHtml(m.nombre)).join(', ')}</div>` : ''}
+    <div class="poder-actions">
+      ${vigente ? `
+        <button class="btn btn-secondary btn-sm" onclick="verPdf('${cliente.id}','${vigente.id}')">${iconSvg('eye')} Ver PDF</button>
+        <button class="btn btn-secondary btn-sm" onclick="descargarPdf('${cliente.id}','${vigente.id}')">${iconSvg('download')} Descargar</button>
+        <button class="btn btn-secondary btn-sm" onclick="generarNuevaVersion('${cliente.id}')">${iconSvg('plusCircle')} Generar nueva versión</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmarEliminar('${cliente.id}','${vigente.id}')">${iconSvg('trash')} Eliminar</button>
+      ` : `<button class="btn btn-primary btn-sm" onclick="showView('generar-poder',{prefillClientId:'${cliente.id}'})">${iconSvg('plusCircle')} Generar Poder SII</button>`}
+    </div>
+    ${archivadas.length ? `
+      <div class="versions-toggle" onclick="toggleVersiones('${cliente.id}')">
+        <span id="versiones-arrow-${cliente.id}">▸</span> Ver versiones anteriores (${archivadas.length})
+      </div>
+      <div class="versions-panel hidden" id="versiones-panel-${cliente.id}">
+        ${archivadas.map(v=>`
+          <div class="version-row">
+            <div>Versión ${v.version} · Fecha: ${fechaCortaFromISO(v.fechaISO)} · Creado por: ${escapeHtml(v.usuario)} · <span class="pill pill-archivado">Archivado</span></div>
+            <button class="btn btn-secondary btn-sm" onclick="verPdf('${cliente.id}','${v.id}')">${iconSvg('eye')} Ver PDF</button>
+          </div>`).join('')}
+      </div>` : ''}
+  </div>`;
+}
+
+function toggleVersiones(clienteId){
+  const panel = document.getElementById('versiones-panel-'+clienteId);
+  const arrow = document.getElementById('versiones-arrow-'+clienteId);
+  panel.classList.toggle('hidden');
+  arrow.textContent = panel.classList.contains('hidden') ? '▸' : '▾';
+}
+
+function findRecord(clienteId, recordId){
+  return (poderesStore[clienteId]||[]).find(v=>v.id===recordId);
+}
+function verPdf(clienteId, recordId){
+  const r = findRecord(clienteId, recordId);
+  if(r) openPdfInNewTab(r.pdfBase64);
+}
+function descargarPdf(clienteId, recordId){
+  const r = findRecord(clienteId, recordId);
+  if(r) triggerDownload(blobFromBase64Pdf(r.pdfBase64), r.fileName);
+}
+function generarNuevaVersion(clienteId){
+  showView('generar-poder', { prefillClientId: clienteId });
+}
+function confirmarEliminar(clienteId, recordId){
+  const cliente = getCliente(clienteId);
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-overlay">
+    <div class="modal">
+      <h3>¿Eliminar este Poder SII?</h3>
+      <p>¿Estás seguro de que deseas eliminar el poder vigente de <b>${escapeHtml(cliente.razonSocial)}</b>? Esta acción debe quedar registrada. El documento quedará marcado como eliminado y no será visible en la vista principal, conservando trazabilidad interna.</p>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="confirm-delete">Sí, eliminar</button>
+        <button class="btn btn-ghost" id="cancel-delete">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cancel-delete').addEventListener('click', closeModal);
+  document.getElementById('confirm-delete').addEventListener('click', ()=>{
+    const r = findRecord(clienteId, recordId);
+    if(r){
+      r.eliminado = true;
+      internalAuditLog.push({ ts:new Date().toISOString(), usuario:CURRENT_USER, cliente:cliente.razonSocial, mensaje:`Eliminación (lógica) de Poder SII v${r.version}.` });
+      saveStore();
+    }
+    closeModal();
+    showToast('Poder SII eliminado. Queda registrado internamente para trazabilidad.');
+    showView('poderes-generados');
+  });
+}
+
+function resetDemoData(){
+  seedStore();
+  showToast('Datos de ejemplo restablecidos.');
+  showView('poderes-generados');
+}
+
+document.addEventListener('input', e=>{
+  if(e.target && e.target.id==='poderes-search'){
+    poderesSearchTerm = e.target.value;
+    document.getElementById('poderes-list').innerHTML = (()=>{
+      const clientesConPoder = CLIENTES.filter(c => (poderesStore[c.id]||[]).some(v=>!v.eliminado));
+      const filtered = clientesConPoder.filter(c => normalize(c.razonSocial).includes(normalize(poderesSearchTerm)));
+      return filtered.length ? filtered.map(clienteFolderHtml).join('') : `<div class="card"><div class="empty-state">${iconSvg('archive')}<p>No hay poderes generados que coincidan con la búsqueda.</p></div></div>`;
+    })();
+  }
+});
+
+/* ============================= TOAST ============================= */
+
+function showToast(msg, isError){
+  const root = document.getElementById('toast-root');
+  root.innerHTML = `<div class="toast" style="${isError?'background:#7f1d1d;':''}">${iconSvg(isError?'alert':'check')}<span>${escapeHtml(msg)}</span></div>`;
+  setTimeout(()=>{ root.innerHTML=''; }, 4200);
+}
+
+/* ============================= INIT ============================= */
+
+Array.from(document.querySelectorAll('.side-icon')).forEach(btn=>{
+  btn.addEventListener('click', ()=> showView(btn.dataset.view));
+});
+
+if(!loadStore()) seedStore();
+setTimeout(()=>{ const p = document.getElementById('folder-pulse'); if(p) p.remove(); }, 6000);
+showView('home');
+</script>
+</body>
+</html>

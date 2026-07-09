@@ -92,9 +92,13 @@ export function buildDocumentModel({ ciudadFirma, fecha, tipoMandante, cliente, 
   ];
 
   // -------- Párrafo 3: facultades para trámites ante el SII --------
+  // Enumeración enunciativa y no taxativa: se listan expresamente todas las
+  // facultades de la matriz original, en párrafo continuo (sin viñetas),
+  // dejando abierta la cláusula a cualquier otro trámite ante el SII.
   const sujetoPlural = plural ? 'los Mandatarios' : mandatarioSingularSujeto(mandatarios[0].nombre);
+  const sujetoDativoParrafo3 = plural ? 'a los Mandatarios' : mandatarioSingularDativo(mandatarios[0].nombre);
   const parrafo3 = [
-    seg(`En el ejercicio del presente mandato, ${sujetoPlural} ${plural ? 'podrán' : 'podrá'} realizar, en nombre y representación de la Parte Mandante, todos los trámites necesarios ante el Servicio de Impuestos Internos, entre otros: inicio de actividades; término de giro; presentación y rectificación de declaraciones juradas, formularios y declaraciones de impuestos; solicitudes de modificación de datos; ampliaciones y modificaciones de giro; obtención y cambio de clave tributaria; suscripción de convenios de pago; solicitud de copias de giros y certificados de deudas fiscales; y timbraje de documentos tributarios, para lo cual ${plural ? 'se les confieren' : 'se le confieren'} las más amplias facultades a fin de que ${plural ? 'procedan' : 'proceda'} conforme a derecho.`),
+    seg(`En el ejercicio del presente mandato, ${sujetoPlural} ${plural ? 'podrán' : 'podrá'} realizar, en nombre y representación de la Parte Mandante, todos los trámites que sean necesarios ante el Servicio de Impuestos Internos, incluyendo, entre otros: la iniciación de actividades; el término de giro; la firma de declaraciones juradas de ingresos y gastos conforme al artículo 60 del Código Tributario; la firma y presentación de declaraciones de no declarantes, rectificatorias y modificatorias de los Formularios 22, 29 y 50; la solicitud de giros; la notificación de cobranzas tributarias; la corrección de datos de identificación; la solicitud y obtención de claves de acceso; la firma de convenios de pago; la solicitud de copias de giros, certificados de deudas y demás antecedentes ante la Tesorería General de la República; el timbraje de boletas, facturas, guías de despacho y libros de contabilidad; y cualquier otro documento o trámite ante el Servicio de Impuestos Internos. Las facultades precedentemente enunciadas tienen un carácter meramente ejemplar y no taxativo, sin que su detalle implique limitación alguna al presente mandato, para cuyo eficaz cumplimiento se ${plural ? 'les' : 'le'} confieren ${sujetoDativoParrafo3} las más amplias facultades, a fin de que ${plural ? 'procedan' : 'proceda'} conforme a derecho.`),
   ];
 
   // -------- Párrafo 4: facultades especiales (Formulario 3230, claves SII, etc.) --------
